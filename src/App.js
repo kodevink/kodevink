@@ -5,6 +5,7 @@ import themeDark from "./assets/theme-dark"; // Import the new dark theme
 import { useMaterialUIController } from "./context";
 import { Routes, Route, Navigate } from "react-router-dom"; // Placeholder for routes
 import SignIn from "./layouts/authentication/sign-in"; // Placeholder for sign-in page
+import SignUp from "./layouts/authentication/sign-up"; // Placeholder for sign-in page
 
 export default function App() {
   const [controller] = useMaterialUIController();
@@ -15,6 +16,7 @@ export default function App() {
       <CssBaseline />
       <Routes>
         <Route path="/authentication/sign-in" element={<SignIn />} />
+        <Route path="/authentication/sign-up" element={<SignUp />} />
         <Route path="*" element={<Navigate to="/authentication/sign-in" />} />
       </Routes>
     </ThemeProvider>
