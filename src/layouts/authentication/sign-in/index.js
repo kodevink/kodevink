@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "utils/supabase";
 // react-router-dom components
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // @mui material components
 import Card from "@mui/material/Card";
@@ -28,23 +28,39 @@ import bgImage from "assets/images/bg-sign-in-basic.jpeg";
 
 function Basic() {
   const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
   const handleSignIn = async (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevent form from reloading the page
+    setLoading(true);
+    setError(null);
 
-    const { email, password } = event.target.elements;
+    try {
 
-    const { user, error } = await supabase.auth.signIn({
-      email: email.value,
-      password: password.value,
-    });
+      console.log(`Email: ${email}, Password: ${password}`);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-    if (error) {
-      console.error("Error signing in:", error);
-    } else {
-      console.log("User signed in:", user);
+      if (error) {
+        throw error;
+      }
+      console.log("Login successful");
+
+      // If login is successful, navigate to the dashboard
+      navigate("/dashboard");
+
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,12 +120,12 @@ function Basic() {
           </Grid>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
-          <MDBox component="form" role="form">
+          <MDBox component="form" role="form" onSubmit={handleSignIn}>
             <MDBox mb={2}>
-              <MDInput type="email" label="Email" fullWidth />
+              <MDInput type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
             </MDBox>
             <MDBox mb={2}>
-              <MDInput type="password" label="Password" fullWidth />
+              <MDInput type="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
             </MDBox>
             <MDBox display="flex" alignItems="center" ml={-1}>
               <Switch checked={rememberMe} onChange={handleSetRememberMe} />
@@ -128,7 +144,7 @@ function Basic() {
                 variant="gradient"
                 color="info"
                 fullWidth
-                onClick={handleSignIn}
+                type="submit"
               >
                 sign in
               </MDButton>
