@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { supabase } from "utils/supabase";
 // react-router-dom components
 import { Link } from "react-router-dom";
 
@@ -31,6 +31,23 @@ function Basic() {
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
+  const handleSignIn = async (event) => {
+    event.preventDefault();
+
+    const { email, password } = event.target.elements;
+
+    const { user, error } = await supabase.auth.signIn({
+      email: email.value,
+      password: password.value,
+    });
+
+    if (error) {
+      console.error("Error signing in:", error);
+    } else {
+      console.log("User signed in:", user);
+    }
+  };
+
   return (
     <BasicLayout image={bgImage}>
       <Card>
@@ -48,19 +65,39 @@ function Basic() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <Grid container spacing={3} justifyContent="center" sx={{ mt: 1, mb: 2 }}>
+          <Grid
+            container
+            spacing={3}
+            justifyContent="center"
+            sx={{ mt: 1, mb: 2 }}
+          >
             <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
+              <MDTypography
+                component={MuiLink}
+                href="#"
+                variant="body1"
+                color="white"
+              >
                 <FacebookIcon color="inherit" />
               </MDTypography>
             </Grid>
             <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
+              <MDTypography
+                component={MuiLink}
+                href="#"
+                variant="body1"
+                color="white"
+              >
                 <GitHubIcon color="inherit" />
               </MDTypography>
             </Grid>
             <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
+              <MDTypography
+                component={MuiLink}
+                href="#"
+                variant="body1"
+                color="white"
+              >
                 <GoogleIcon color="inherit" />
               </MDTypography>
             </Grid>
@@ -87,7 +124,12 @@ function Basic() {
               </MDTypography>
             </MDBox>
             <MDBox mt={4} mb={1}>
-              <MDButton variant="gradient" color="info" fullWidth>
+              <MDButton
+                variant="gradient"
+                color="info"
+                fullWidth
+                onClick={handleSignIn}
+              >
                 sign in
               </MDButton>
             </MDBox>
