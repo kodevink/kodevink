@@ -1,6 +1,7 @@
 import Icon from "@mui/material/Icon";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import ResetPassword from "layouts/authentication/reset-password/cover";
 
 const routes = [
     // {
@@ -50,6 +51,14 @@ const routes = [
         icon: <Icon fontSize="small">assignment</Icon>,
         route: "/authentication/sign-up",
         component: <SignUp />,
+    },
+    {
+        type: "collapse",
+        name: "Reset Password",
+        key: "reset-password",
+        icon: <Icon fontSize="small">password</Icon>,
+        route: "/authentication/reset-password",
+        component: <ResetPassword />,
     },
 ];
 
