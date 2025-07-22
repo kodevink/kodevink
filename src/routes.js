@@ -3,6 +3,7 @@ import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
+import Profile from "layouts/profile";
 
 const routes = [
     {
@@ -29,14 +30,14 @@ const routes = [
     //     route: "/notifications",
     //     component: <Notifications />,
     // },
-    // {
-    //     type: "collapse",
-    //     name: "Profile",
-    //     key: "profile",
-    //     icon: <Icon fontSize="small">person</Icon>,
-    //     route: "/profile",
-    //     component: <Profile />,
-    // },
+    {
+        type: "collapse",
+        name: "Profile",
+        key: "profile",
+        icon: <Icon fontSize="small">person</Icon>,
+        route: "/profile",
+        component: <Profile />,
+    },
     {
         type: "collapse",
         name: "Sign In",
