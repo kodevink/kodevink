@@ -90,8 +90,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
       sx={{ mt: 2 }}
     >
       <NotificationItem icon={<Icon>email</Icon>} title="Check new messages" />
-      <NotificationItem icon={<Icon>podcasts</Icon>} title="Manage Podcast sessions" />
-      <NotificationItem icon={<Icon>shopping_cart</Icon>} title="Payment successfully completed" />
+      <NotificationItem icon={<Icon>verified</Icon>} title="Your submission has been verified" />
     </Menu>
   );
 
