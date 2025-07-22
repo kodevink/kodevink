@@ -81,6 +81,7 @@ function Basic() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
+          
           <Grid
             container
             spacing={3}
@@ -148,6 +149,11 @@ function Basic() {
               >
                 sign in
               </MDButton>
+            </MDBox>
+            <MDBox textAlign="center">
+              <MDTypography variant="button" color="text" component={Link} to="/authentication/reset-password">
+                Forgot Password ?
+              </MDTypography>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">
