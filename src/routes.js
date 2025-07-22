@@ -15,14 +15,6 @@ const routes = [
     },
     {
         type: "collapse",
-        name: "Tables",
-        key: "tables",
-        icon: <Icon fontSize="small">table_view</Icon>,
-        route: "/tables",
-        component: <SignIn />,
-    },
-    {
-        type: "collapse",
         name: "Notifications",
         key: "notifications",
         icon: <Icon fontSize="small">notifications</Icon>,
@@ -38,7 +30,7 @@ const routes = [
         component: <SignIn />,
     },
     {
-        type: "collapse",
+        type: "title",
         name: "Sign In",
         key: "sign-in",
         icon: <Icon fontSize="small">login</Icon>,
@@ -46,7 +38,7 @@ const routes = [
         component: <SignIn />,
     },
     {
-        type: "collapse",
+        type: "title",
         name: "Sign Up",
         key: "sign-up",
         icon: <Icon fontSize="small">assignment</Icon>,
@@ -54,7 +46,7 @@ const routes = [
         component: <SignUp />,
     },
     {
-        type: "collapse",
+        type: "title",
         name: "Reset Password",
         key: "reset-password",
         icon: <Icon fontSize="small">password</Icon>,
