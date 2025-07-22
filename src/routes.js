@@ -3,7 +3,6 @@ import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
-import Profile from "layouts/profile";
 
 const routes = [
     {
@@ -14,29 +13,29 @@ const routes = [
         route: "/dashboard",
         component: <Dashboard />,
     },
-    // {
-    //     type: "collapse",
-    //     name: "Tables",
-    //     key: "tables",
-    //     icon: <Icon fontSize="small">table_view</Icon>,
-    //     route: "/tables",
-    //     component: <Tables />,
-    // },
-    // {
-    //     type: "collapse",
-    //     name: "Notifications",
-    //     key: "notifications",
-    //     icon: <Icon fontSize="small">notifications</Icon>,
-    //     route: "/notifications",
-    //     component: <Notifications />,
-    // },
+    {
+        type: "collapse",
+        name: "Tables",
+        key: "tables",
+        icon: <Icon fontSize="small">table_view</Icon>,
+        route: "/tables",
+        component: <SignIn />,
+    },
+    {
+        type: "collapse",
+        name: "Notifications",
+        key: "notifications",
+        icon: <Icon fontSize="small">notifications</Icon>,
+        route: "/notifications",
+        component: <SignIn />,
+    },
     {
         type: "collapse",
         name: "Profile",
         key: "profile",
         icon: <Icon fontSize="small">person</Icon>,
         route: "/profile",
-        component: <Profile />,
+        component: <SignIn />,
     },
     {
         type: "collapse",
