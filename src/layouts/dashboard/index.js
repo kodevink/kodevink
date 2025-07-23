@@ -8,62 +8,69 @@ import MDBox from "components/MDBox";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 // import Footer from "examples/Footer";
-// import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
+import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import PieChart from "examples/Charts/PieChart";
 
 
 // // Data
 // import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
-// import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
 
 // // Dashboard components
 // import Projects from "layouts/dashboard/components/Projects";
 // import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
 function Dashboard() {
-    const publications=[
-      {
-        id: 1,
-        title: "A Study on a Novel Machine Learning Algorithm",
-        publication_type: "Journal Paper",
-        publication_year: 2024,
-        verification_status: "verified",
-        profiles: { full_name: "Dr. Anjali Sharma" }
-      },
-      {
-        id: 2,
-        title: "Innovations in Cloud Computing Security",
-        publication_type: "Conference Paper",
-        publication_year: 2024,
-        verification_status: "pending",
-        profiles: { full_name: "Dr. Anjali Sharma" }
-      },
-      {
-        id: 3,
-        title: "System and Method for Data Encryption",
-        publication_type: "Patent",
-        publication_year: 2023,
-        verification_status: "verified",
-        profiles: { full_name: "Dr. Anjali Sharma" }
-      },
-      {
-        id: 4,
-        title: "Advanced Topics in Quantum Physics",
-        publication_type: "Book Chapter",
-        publication_year: 2022,
-        verification_status: "verified",
-        profiles: { full_name: "Dr. Anjali Sharma" }
-      },
-      {
-        id: 5,
-        title: "The Impact of AI on Modern Education",
-        publication_type: "Journal Paper",
-        publication_year: 2023,
-        verification_status: "verified",
-        profiles: { full_name: "Dr. Anjali Sharma" }
-      },
-    ];
+
+
+
+  const { sales, tasks } = reportsLineChartData;
+
+
+
+  const publications = [
+    {
+      id: 1,
+      title: "A Study on a Novel Machine Learning Algorithm",
+      publication_type: "Journal Paper",
+      publication_year: 2024,
+      verification_status: "verified",
+      profiles: { full_name: "Dr. Anjali Sharma" }
+    },
+    {
+      id: 2,
+      title: "Innovations in Cloud Computing Security",
+      publication_type: "Conference Paper",
+      publication_year: 2024,
+      verification_status: "pending",
+      profiles: { full_name: "Dr. Anjali Sharma" }
+    },
+    {
+      id: 3,
+      title: "System and Method for Data Encryption",
+      publication_type: "Patent",
+      publication_year: 2023,
+      verification_status: "verified",
+      profiles: { full_name: "Dr. Anjali Sharma" }
+    },
+    {
+      id: 4,
+      title: "Advanced Topics in Quantum Physics",
+      publication_type: "Book Chapter",
+      publication_year: 2022,
+      verification_status: "verified",
+      profiles: { full_name: "Dr. Anjali Sharma" }
+    },
+    {
+      id: 5,
+      title: "The Impact of AI on Modern Education",
+      publication_type: "Journal Paper",
+      publication_year: 2023,
+      verification_status: "verified",
+      profiles: { full_name: "Dr. Anjali Sharma" }
+    },
+  ];
 
   const typeCounts = publications.reduce((acc, pub) => {
     acc[pub.publication_type] = (acc[pub.publication_type] || 0) + 1;
@@ -145,9 +152,47 @@ function Dashboard() {
             </MDBox>
           </Grid>
         </Grid>
-        
+
         <MDBox mt={4.5}>
           <Grid container spacing={3}>
+            {/* <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                <ReportsBarChart
+                  color="info"
+                  title="website views"
+                  description="Last Campaign Performance"
+                  date="campaign sent 2 days ago"
+                  chart={reportsBarChartData}
+                />
+              </MDBox>
+            </Grid> */}
+            <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                <ReportsLineChart
+                  color="success"
+                  title="daily sales"
+                  description={
+                    <>
+                      (<strong>+15%</strong>) increase in today sales.
+                    </>
+                  }
+                  date="updated 4 min ago"
+                  chart={sales}
+                />
+              </MDBox>
+            </Grid>
+            <Grid item xs={12} md={6} lg={4}>
+              <MDBox mb={3}>
+                <ReportsLineChart
+                  color="dark"
+                  title="completed tasks"
+                  description="Last Campaign Performance"
+                  date="just updated"
+                  chart={tasks}
+                />
+              </MDBox>
+            </Grid>
+
             <Grid item xs={12} md={6} lg={4}>
               <MDBox mb={3}>
                 <PieChart

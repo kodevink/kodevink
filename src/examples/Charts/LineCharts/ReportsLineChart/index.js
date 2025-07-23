@@ -1,11 +1,36 @@
+/**
+=========================================================
+* Material Dashboard 2  React - v2.2.0
+=========================================================
+
+* Product Page: https://www.creative-tim.com/product/material-dashboard-react
+* Copyright 2023 Creative Tim (https://www.creative-tim.com)
+
+Coded by www.creative-tim.com
+
+ =========================================================
+
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+*/
+
 import { useMemo } from "react";
 
-// prop-types is a library for typechecking of props
+// porp-types is a library for typechecking of props
 import PropTypes from "prop-types";
 
 // react-chartjs-2 components
-import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
 
 // @mui material components
 import Card from "@mui/material/Card";
@@ -16,12 +41,21 @@ import Icon from "@mui/material/Icon";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 
-// PieChart configurations
-import configs from "examples/Charts/PieChart/configs";
+// ReportsLineChart configurations
+import configs from "examples/Charts/LineCharts/ReportsLineChart/configs";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
-function PieChart({ color, title, description, date, chart }) {
+function ReportsLineChart({ color, title, description, date, chart }) {
   const { data, options } = configs(chart.labels || [], chart.datasets || {});
 
   return (
@@ -39,7 +73,7 @@ function PieChart({ color, title, description, date, chart }) {
               mt={-5}
               height="12.5rem"
             >
-              <Pie data={data} options={options} redraw />
+              <Line data={data} options={options} redraw />
             </MDBox>
           ),
           [chart, color]
@@ -66,14 +100,14 @@ function PieChart({ color, title, description, date, chart }) {
   );
 }
 
-// Setting default values for the props of PieChart
-PieChart.defaultProps = {
+// Setting default values for the props of ReportsLineChart
+ReportsLineChart.defaultProps = {
   color: "info",
   description: "",
 };
 
-// Typechecking props for the PieChart
-PieChart.propTypes = {
+// Typechecking props for the ReportsLineChart
+ReportsLineChart.propTypes = {
   color: PropTypes.oneOf(["primary", "secondary", "info", "success", "warning", "error", "dark"]),
   title: PropTypes.string.isRequired,
   description: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
@@ -81,4 +115,4 @@ PieChart.propTypes = {
   chart: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.array, PropTypes.object])).isRequired,
 };
 
-export default PieChart;
+export default ReportsLineChart;
