@@ -3,6 +3,7 @@ import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
+import Notifications from "layouts/notifications";
 
 const routes = [
     {
@@ -19,7 +20,7 @@ const routes = [
         key: "notifications",
         icon: <Icon fontSize="small">notifications</Icon>,
         route: "/notifications",
-        component: <SignIn />,
+        component: <Notifications />,
     },
     {
         type: "collapse",
