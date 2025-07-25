@@ -22,6 +22,7 @@ import PublicationForm from "components/PublicationForm";
 
 // Data
 import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+import Publications from "./components/Publications";
 
 function Dashboard() {
   const { sales, tasks } = reportsLineChartData;
@@ -224,8 +225,8 @@ function Dashboard() {
 
         <MDBox>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={8}>
-              {/* <Projects /> */}
+            <Grid item xs={12} md={6} lg={20}>
+              <Publications />
             </Grid>
           </Grid>
         </MDBox>
