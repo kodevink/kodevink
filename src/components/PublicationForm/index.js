@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "utils/supabase";
 import MDBox from "components/MDBox";
@@ -11,7 +12,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-export default function PublicationForm({ onClose, publication }) {
+export default function PublicationForm({ onClose, publication, onSubmitSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
     publication_type: "",
@@ -28,7 +29,7 @@ export default function PublicationForm({ onClose, publication }) {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Debug publication prop
+  // Pre-fill form for editing
   useEffect(() => {
     console.log("Publication prop:", publication);
     if (publication) {
@@ -155,6 +156,12 @@ export default function PublicationForm({ onClose, publication }) {
         verification_status: "pending",
       });
       setFile(null);
+      if (typeof onSubmitSuccess === "function") {
+        console.log("Calling onSubmitSuccess");
+        onSubmitSuccess();
+      } else {
+        console.warn("onSubmitSuccess is not a function:", onSubmitSuccess);
+      }
       onClose();
     } catch (error) {
       console.error("Submission error:", error.message);

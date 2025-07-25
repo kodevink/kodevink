@@ -11,7 +11,7 @@ import MDButton from "components/MDButton";
 import DataTable from "examples/Tables/DataTable";
 import PublicationForm from "components/PublicationForm";
 
-function Publications() {
+function Publications({ refreshPublications }) {
   const [publications, setPublications] = useState([]);
   const [menu, setMenu] = useState(null);
   const [selectedPublication, setSelectedPublication] = useState(null);
@@ -19,28 +19,37 @@ function Publications() {
   const [error, setError] = useState("");
 
   // Fetch publications for the authenticated user
-  useEffect(() => {
-    const fetchPublications = async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-          throw new Error("User not authenticated");
-        }
-        const { data, error } = await supabase
-          .from("publications")
-          .select("*")
-          .eq("profile_id", user.id);
-        if (error) {
-          throw new Error(`Error fetching publications: ${error.message}`);
-        }
-        console.log("Fetched publications:", data);
-        setPublications(data || []);
-      } catch (err) {
-        setError(err.message);
+  const fetchPublications = async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error("User not authenticated");
       }
-    };
+      const { data, error } = await supabase
+        .from("publications")
+        .select("*")
+        .eq("profile_id", user.id);
+      if (error) {
+        throw new Error(`Error fetching publications: ${error.message}`);
+      }
+      console.log("Publications fetched:", data);
+      setPublications(data || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
     fetchPublications();
   }, []);
+
+  // Handle external refresh from Dashboard
+  useEffect(() => {
+    if (typeof refreshPublications === "function") {
+      console.log("Received refreshPublications from Dashboard, refreshing");
+      fetchPublications();
+    }
+  }, [refreshPublications]);
 
   const openMenu = ({ currentTarget }, publication) => {
     console.log("Opening menu for publication:", publication);
@@ -50,7 +59,7 @@ function Publications() {
 
   const closeMenu = () => {
     setMenu(null);
-    // Do not reset selectedPublication here to ensure it persists for edit
+    // Do not reset selectedPublication to ensure it persists for edit
   };
 
   const handleEdit = () => {
@@ -93,6 +102,10 @@ function Publications() {
       }
       setPublications(publications.filter((pub) => pub.id !== selectedPublication.id));
       alert("Publication deleted successfully!");
+      if (typeof refreshPublications === "function") {
+        console.log("Triggering external refresh after deletion");
+        refreshPublications();
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -104,17 +117,15 @@ function Publications() {
     console.log("Closing form, resetting selectedPublication");
     setOpenModal(false);
     setSelectedPublication(null);
-    // Refresh publications
-    const fetchPublications = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data } = await supabase
-        .from("publications")
-        .select("*")
-        .eq("profile_id", user.id);
-      console.log("Refreshed publications:", data);
-      setPublications(data || []);
-    };
+  };
+
+  const handleSubmitSuccess = () => {
+    console.log("Publications handleSubmitSuccess called, refreshing publications");
     fetchPublications();
+    if (typeof refreshPublications === "function") {
+      console.log("Triggering external refresh from Publications");
+      refreshPublications();
+    }
   };
 
   const columns = [
@@ -237,6 +248,7 @@ function Publications() {
         <PublicationForm
           onClose={handleFormClose}
           publication={selectedPublication}
+          onSubmitSuccess={handleSubmitSuccess}
         />
       </Modal>
     </MDBox>

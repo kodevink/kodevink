@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "utils/supabase";
 import Grid from "@mui/material/Grid";
@@ -9,8 +10,8 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import PieChart from "examples/Charts/PieChart";
-import Publications from "layouts/dashboard/components/Publications";
-import PublicationForm from "components/PublicationForm"
+import Publications from "layouts/dashboard/components/Publications"
+import PublicationForm from "components/PublicationForm";
 import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
 
 function Dashboard() {
@@ -25,33 +26,35 @@ function Dashboard() {
   });
 
   // Fetch publications for the authenticated user
-  useEffect(() => {
-    const fetchPublications = async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-          throw new Error("User not authenticated");
-        }
-        const { data, error } = await supabase
-          .from("publications")
-          .select("*")
-          .eq("profile_id", user.id);
-        if (error) {
-          throw new Error(`Error fetching publications: ${error.message}`);
-        }
-        setPublications(data || []);
-
-        // Calculate statistics
-        const currentYear = new Date().getFullYear();
-        const total = data.length;
-        const verified = data.filter((pub) => pub.verification_status === "verified").length;
-        const pending = data.filter((pub) => pub.verification_status === "pending").length;
-        const thisYear = data.filter((pub) => pub.publication_year === currentYear).length;
-        setStats({ total, verified, pending, thisYear });
-      } catch (err) {
-        console.error("Error fetching publications:", err.message);
+  const fetchPublications = async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error("User not authenticated");
       }
-    };
+      const { data, error } = await supabase
+        .from("publications")
+        .select("*")
+        .eq("profile_id", user.id);
+      if (error) {
+        throw new Error(`Error fetching publications: ${error.message}`);
+      }
+      console.log("Dashboard fetched publications:", data);
+      setPublications(data || []);
+
+      // Calculate statistics
+      const currentYear = new Date().getFullYear();
+      const total = data.length;
+      const verified = data.filter((pub) => pub.verification_status === "verified").length;
+      const pending = data.filter((pub) => pub.verification_status === "pending").length;
+      const thisYear = data.filter((pub) => pub.publication_year === currentYear).length;
+      setStats({ total, verified, pending, thisYear });
+    } catch (err) {
+      console.error("Error fetching publications:", err.message);
+    }
+  };
+
+  useEffect(() => {
     fetchPublications();
   }, []);
 
@@ -73,6 +76,17 @@ function Dashboard() {
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
 
+  const handleSubmitSuccess = (refreshPublications) => {
+    console.log("Dashboard handleSubmitSuccess called, refreshing data");
+    fetchPublications();
+    if (typeof refreshPublications === "function") {
+      console.log("Triggering Publications refresh from Dashboard");
+      refreshPublications();
+    } else {
+      console.warn("refreshPublications is not a function:", refreshPublications);
+    }
+  };
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -91,7 +105,10 @@ function Dashboard() {
             justifyContent: "center",
           }}
         >
-          <PublicationForm onClose={handleCloseModal} />
+          <PublicationForm
+            onClose={handleCloseModal}
+            onSubmitSuccess={() => handleSubmitSuccess(fetchPublications)}
+          />
         </Modal>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6} lg={3}>
@@ -195,10 +212,10 @@ function Dashboard() {
             </Grid>
           </Grid>
         </MDBox>
-        <MDBox mt={1}>
+        <MDBox mt={4.5}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Publications />
+              <Publications refreshPublications={fetchPublications} />
             </Grid>
           </Grid>
         </MDBox>
