@@ -1,21 +1,18 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "utils/supabase";
 import Card from "@mui/material/Card";
 import Icon from "@mui/material/Icon";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import Modal from "@mui/material/Modal";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 import DataTable from "examples/Tables/DataTable";
-import PublicationForm from "components/PublicationForm";
 
-function Publications({ refreshPublications }) {
+function Publications({ refreshPublications, onEditPublication }) {
   const [publications, setPublications] = useState([]);
   const [menu, setMenu] = useState(null);
-  const [selectedPublication, setSelectedPublication] = useState(null);
-  const [openModal, setOpenModal] = useState(false);
+  const [selectedPublication, setSelectedPublication] = useState(null); // Added for menu context
   const [error, setError] = useState("");
 
   // Fetch publications for the authenticated user
@@ -59,35 +56,34 @@ function Publications({ refreshPublications }) {
 
   const closeMenu = () => {
     setMenu(null);
-    // Do not reset selectedPublication to ensure it persists for edit
   };
 
-  const handleEdit = () => {
-    console.log("Handle edit, selectedPublication:", selectedPublication);
-    if (selectedPublication) {
-      setOpenModal(true);
+  const handleEdit = (publication) => {
+    console.log("Handle edit, calling onEditPublication with:", publication);
+    if (typeof onEditPublication === "function" && publication) {
+      onEditPublication(publication);
     } else {
-      console.error("No publication selected for edit");
-      setError("No publication selected. Please try again.");
+      console.error("onEditPublication is not a function or publication is invalid:", publication);
+      setError("Cannot edit publication. Please try again.");
     }
     closeMenu();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (publication) => {
     if (!window.confirm("Are you sure you want to delete this publication?")) {
       closeMenu();
       return;
     }
     try {
-      if (!selectedPublication) {
+      if (!publication) {
         throw new Error("No publication selected for deletion");
       }
       // Delete associated PDF if exists
-      if (selectedPublication.document_url) {
-        const fileName = selectedPublication.document_url.split("/").pop();
+      if (publication.document_url) {
+        const fileName = publication.document_url.split("/").pop();
         const { error: storageError } = await supabase.storage
-          .from("publication-documents")
-          .remove([`${selectedPublication.profile_id}/${fileName}`]);
+          .from("research-papers") // Standardized to match PublicationForm.js
+          .remove([`${publication.profile_id}/${fileName}`]);
         if (storageError) {
           throw new Error(`Error deleting PDF: ${storageError.message}`);
         }
@@ -96,11 +92,11 @@ function Publications({ refreshPublications }) {
       const { error } = await supabase
         .from("publications")
         .delete()
-        .eq("id", selectedPublication.id);
+        .eq("id", publication.id);
       if (error) {
         throw new Error(`Error deleting publication: ${error.message}`);
       }
-      setPublications(publications.filter((pub) => pub.id !== selectedPublication.id));
+      setPublications(publications.filter((pub) => pub.id !== publication.id));
       alert("Publication deleted successfully!");
       if (typeof refreshPublications === "function") {
         console.log("Triggering external refresh after deletion");
@@ -110,22 +106,6 @@ function Publications({ refreshPublications }) {
       setError(err.message);
     }
     closeMenu();
-    setSelectedPublication(null);
-  };
-
-  const handleFormClose = () => {
-    console.log("Closing form, resetting selectedPublication");
-    setOpenModal(false);
-    setSelectedPublication(null);
-  };
-
-  const handleSubmitSuccess = () => {
-    console.log("Publications handleSubmitSuccess called, refreshing publications");
-    fetchPublications();
-    if (typeof refreshPublications === "function") {
-      console.log("Triggering external refresh from Publications");
-      refreshPublications();
-    }
   };
 
   const columns = [
@@ -184,8 +164,8 @@ function Publications({ refreshPublications }) {
       open={Boolean(menu)}
       onClose={closeMenu}
     >
-      <MenuItem onClick={handleEdit}>Edit</MenuItem>
-      <MenuItem onClick={handleDelete}>Delete</MenuItem>
+      <MenuItem onClick={() => handleEdit(selectedPublication)}>Edit</MenuItem>
+      <MenuItem onClick={() => handleDelete(selectedPublication)}>Delete</MenuItem>
     </Menu>
   );
 
@@ -208,7 +188,7 @@ function Publications({ refreshPublications }) {
                 done
               </Icon>
               <MDTypography variant="button" fontWeight="regular" color="text">
-                 <strong>{publications.length} total</strong> publications
+                <strong>{publications.length} total</strong> publications
               </MDTypography>
             </MDBox>
           </MDBox>
@@ -236,21 +216,6 @@ function Publications({ refreshPublications }) {
           />
         </MDBox>
       </Card>
-      <Modal
-        open={openModal}
-        onClose={handleFormClose}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <PublicationForm
-          onClose={handleFormClose}
-          publication={selectedPublication}
-          onSubmitSuccess={handleSubmitSuccess}
-        />
-      </Modal>
     </MDBox>
   );
 }

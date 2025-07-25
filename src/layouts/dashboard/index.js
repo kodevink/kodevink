@@ -1,6 +1,4 @@
-
 import { useEffect, useState } from "react";
-import { supabase } from "utils/supabase";
 import Grid from "@mui/material/Grid";
 import Modal from "@mui/material/Modal";
 import MDBox from "components/MDBox";
@@ -10,12 +8,12 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import PieChart from "examples/Charts/PieChart";
-import Publications from "layouts/dashboard/components/Publications"
+import Publications from "layouts/dashboard/components/Publications";
 import PublicationForm from "components/PublicationForm";
-import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+import { getPublicationChartData } from "layouts/dashboard/data/publicationChartData";
+import { supabase } from "utils/supabase";
 
 function Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
   const [openModal, setOpenModal] = useState(false);
   const [publications, setPublications] = useState([]);
   const [stats, setStats] = useState({
@@ -23,7 +21,10 @@ function Dashboard() {
     verified: 0,
     pending: 0,
     thisYear: 0,
+    ugcCare: 0,
+    scopusIndexed: 0,
   });
+  const [editPublication, setEditPublication] = useState(null);
 
   // Fetch publications for the authenticated user
   const fetchPublications = async () => {
@@ -48,7 +49,9 @@ function Dashboard() {
       const verified = data.filter((pub) => pub.verification_status === "verified").length;
       const pending = data.filter((pub) => pub.verification_status === "pending").length;
       const thisYear = data.filter((pub) => pub.publication_year === currentYear).length;
-      setStats({ total, verified, pending, thisYear });
+      const ugcCare = data.filter((pub) => pub.is_ugc_care).length;
+      const scopusIndexed = data.filter((pub) => pub.is_scopus_indexed).length;
+      setStats({ total, verified, pending, thisYear, ugcCare, scopusIndexed });
     } catch (err) {
       console.error("Error fetching publications:", err.message);
     }
@@ -73,8 +76,20 @@ function Dashboard() {
     },
   };
 
-  const handleOpenModal = () => setOpenModal(true);
-  const handleCloseModal = () => setOpenModal(false);
+  // Get line chart data
+  const { publicationsPerYear, verificationStatus } = getPublicationChartData(publications);
+
+  const handleOpenModal = (publication = null) => {
+    console.log("Handle edit, selectedPublication:", publication);
+    setEditPublication(publication);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    console.log("Closing modal, editPublication:", editPublication);
+    setEditPublication(null);
+    setOpenModal(false);
+  };
 
   const handleSubmitSuccess = (refreshPublications) => {
     console.log("Dashboard handleSubmitSuccess called, refreshing data");
@@ -92,7 +107,7 @@ function Dashboard() {
       <DashboardNavbar />
       <MDBox py={3}>
         <MDBox mb={3} display="flex" justifyContent="flex-end">
-          <MDButton variant="gradient" color="info" onClick={handleOpenModal}>
+          <MDButton variant="gradient" color="info" onClick={() => handleOpenModal()}>
             Add Publication
           </MDButton>
         </MDBox>
@@ -103,15 +118,19 @@ function Dashboard() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            backdropFilter: "blur(5px)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
           }}
         >
           <PublicationForm
+            key={editPublication ? editPublication.id : "new"}
             onClose={handleCloseModal}
             onSubmitSuccess={() => handleSubmitSuccess(fetchPublications)}
+            editPublication={editPublication}
           />
         </Modal>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} md={6} lg={2}>
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="dark"
@@ -126,7 +145,7 @@ function Dashboard() {
               />
             </MDBox>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} md={6} lg={2}>
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 icon="verified"
@@ -140,7 +159,7 @@ function Dashboard() {
               />
             </MDBox>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} md={6} lg={2}>
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="success"
@@ -155,7 +174,7 @@ function Dashboard() {
               />
             </MDBox>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} md={6} lg={2}>
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="primary"
@@ -170,6 +189,36 @@ function Dashboard() {
               />
             </MDBox>
           </Grid>
+          <Grid item xs={12} md={6} lg Gaza Strip={2}>
+            <MDBox mb={1.5}>
+              <ComplexStatisticsCard
+                color="info"
+                icon="school"
+                title="Scopus Indexed"
+                count={stats.scopusIndexed}
+                percentage={{
+                  color: "success",
+                  amount: "+5%",
+                  label: "than last year",
+                }}
+              />
+            </MDBox>
+          </Grid>
+          <Grid item xs={12} md={6} lg={2}>
+            <MDBox mb={1.5}>
+              <ComplexStatisticsCard
+                color="warning"
+                icon="verified_user"
+                title="UGC-CARE Listed"
+                count={stats.ugcCare}
+                percentage={{
+                  color: "success",
+                  amount: "+2%",
+                  label: "than last year",
+                }}
+              />
+            </MDBox>
+          </Grid>
         </Grid>
         <MDBox mt={4.5}>
           <Grid container spacing={3}>
@@ -177,14 +226,10 @@ function Dashboard() {
               <MDBox mb={3}>
                 <ReportsLineChart
                   color="success"
-                  title="daily sales"
-                  description={
-                    <>
-                      (<strong>+15%</strong>) increase in today sales.
-                    </>
-                  }
-                  date="updated 4 min ago"
-                  chart={sales}
+                  title="Publications per Year"
+                  description="Number of publications over the last 10 years."
+                  date="updated today"
+                  chart={publicationsPerYear}
                 />
               </MDBox>
             </Grid>
@@ -192,10 +237,10 @@ function Dashboard() {
               <MDBox mb={3}>
                 <ReportsLineChart
                   color="dark"
-                  title="completed tasks"
-                  description="Last Campaign Performance"
-                  date="just updated"
-                  chart={tasks}
+                  title="Verification Status"
+                  description="Verified vs. pending publications over time."
+                  date="updated today"
+                  chart={verificationStatus}
                 />
               </MDBox>
             </Grid>
@@ -215,7 +260,10 @@ function Dashboard() {
         <MDBox mt={4.5}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Publications refreshPublications={fetchPublications} />
+              <Publications
+                refreshPublications={fetchPublications}
+                onEditPublication={handleOpenModal}
+              />
             </Grid>
           </Grid>
         </MDBox>

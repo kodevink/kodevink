@@ -4,6 +4,7 @@ import SignUp from "layouts/authentication/sign-up";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
 import Notifications from "layouts/notifications";
+import Profile from "layouts/profile";
 
 const routes = [
     {
@@ -13,7 +14,7 @@ const routes = [
         icon: <Icon fontSize="small">dashboard</Icon>,
         route: "/dashboard",
         component: <Dashboard />,
-        requiresAuth:true,
+        requiresAuth: true,
     },
     {
         type: "collapse",
@@ -22,7 +23,7 @@ const routes = [
         icon: <Icon fontSize="small">notifications</Icon>,
         route: "/notifications",
         component: <Notifications />,
-        requiresAuth:true,
+        requiresAuth: true,
     },
     {
         type: "collapse",
@@ -30,7 +31,7 @@ const routes = [
         key: "profile",
         icon: <Icon fontSize="small">person</Icon>,
         route: "/profile",
-        component: <Dashboard />,
+        component: <Profile />,
     },
     {
         type: "title",
