@@ -4,6 +4,8 @@ import Card from "@mui/material/Card";
 import Icon from "@mui/material/Icon";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
@@ -12,8 +14,9 @@ import DataTable from "examples/Tables/DataTable";
 function Publications({ refreshPublications, onEditPublication }) {
   const [publications, setPublications] = useState([]);
   const [menu, setMenu] = useState(null);
-  const [selectedPublication, setSelectedPublication] = useState(null); // Added for menu context
+  const [selectedPublication, setSelectedPublication] = useState(null);
   const [error, setError] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
 
   // Fetch publications for the authenticated user
   const fetchPublications = async () => {
@@ -82,7 +85,7 @@ function Publications({ refreshPublications, onEditPublication }) {
       if (publication.document_url) {
         const fileName = publication.document_url.split("/").pop();
         const { error: storageError } = await supabase.storage
-          .from("research-papers") // Standardized to match PublicationForm.js
+          .from("research-papers")
           .remove([`${publication.profile_id}/${fileName}`]);
         if (storageError) {
           throw new Error(`Error deleting PDF: ${storageError.message}`);
@@ -108,6 +111,12 @@ function Publications({ refreshPublications, onEditPublication }) {
     closeMenu();
   };
 
+  const handleCategoryChange = (event) => {
+    const category = event.target.value;
+    console.log("Category filter changed to:", category);
+    setCategoryFilter(category);
+  };
+
   const columns = [
     { Header: "Title", accessor: "title", width: "20%" },
     { Header: "Publication Type", accessor: "publication_type", width: "15%" },
@@ -120,40 +129,62 @@ function Publications({ refreshPublications, onEditPublication }) {
     { Header: "Actions", accessor: "actions", width: "5%" },
   ];
 
-  const rows = publications.map((pub) => ({
-    title: pub.title,
-    publication_type: pub.publication_type,
-    publication_name: pub.publication_name,
-    publication_year: pub.publication_year || "N/A",
-    is_scopus_indexed: pub.is_scopus_indexed ? "Yes" : "No",
-    is_ugc_care: pub.is_ugc_care ? "Yes" : "No",
-    verification_status: pub.verification_status,
-    document: pub.document_url ? (
-      <MDButton
-        variant="text"
-        color="info"
-        size="small"
-        href={pub.document_url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        View PDF
-      </MDButton>
-    ) : (
-      <Icon sx={{ color: ({ palette: { error } }) => error.main }}>close</Icon>
-    ),
-    actions: (
-      <MDBox>
-        <Icon
-          sx={{ cursor: "pointer", fontWeight: "bold" }}
-          fontSize="small"
-          onClick={(e) => openMenu(e, pub)}
+  const filteredPublications = categoryFilter === "All"
+    ? publications
+    : publications.filter((pub) => pub.publication_type === categoryFilter);
+
+  const rows = filteredPublications.map((pub) => {
+    console.log("Rendering status for publication:", pub.id, "status:", pub.verification_status);
+    return {
+      title: pub.title,
+      publication_type: pub.publication_type,
+      publication_name: pub.publication_name,
+      publication_year: pub.publication_year || "N/A",
+      is_scopus_indexed: pub.is_scopus_indexed ? "Yes" : "No",
+      is_ugc_care: pub.is_ugc_care ? "Yes" : "No",
+      verification_status: (
+        <MDTypography
+          variant="caption"
+          sx={{
+            color: "#ffffff",
+            backgroundColor: ({ palette: { success, warning } }) =>
+              pub.verification_status === "verified" ? success.dark : warning.dark,
+            borderRadius: "12px",
+            px: 1.5,
+            py: 0.5,
+            fontWeight: "medium",
+          }}
         >
-          more_vert
-        </Icon>
-      </MDBox>
-    ),
-  }));
+          {pub.verification_status.charAt(0).toUpperCase() + pub.verification_status.slice(1)}
+        </MDTypography>
+      ),
+      document: pub.document_url ? (
+        <MDButton
+          variant="text"
+          color="info"
+          size="small"
+          href={pub.document_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View PDF
+        </MDButton>
+      ) : (
+        <Icon sx={{ color: ({ palette: { error } }) => error.main }}>close</Icon>
+      ),
+      actions: (
+        <MDBox>
+          <Icon
+            sx={{ cursor: "pointer", fontWeight: "bold" }}
+            fontSize="small"
+            onClick={(e) => openMenu(e, pub)}
+          >
+            more_vert
+          </Icon>
+        </MDBox>
+      ),
+    };
+  });
 
   const renderMenu = (
     <Menu
@@ -188,16 +219,68 @@ function Publications({ refreshPublications, onEditPublication }) {
                 done
               </Icon>
               <MDTypography variant="button" fontWeight="regular" color="text">
-                <strong>{publications.length} total</strong> publications
+                <strong>{filteredPublications.length} total</strong> publications
               </MDTypography>
             </MDBox>
           </MDBox>
-          <MDBox color="text" px={2}>
-            <Icon sx={{ cursor: "pointer", fontWeight: "bold" }} fontSize="small" onClick={openMenu}>
-              more_vert
-            </Icon>
+          <MDBox>
+            <FormControl sx={{ minWidth: 150 }}>
+              <Select
+                value={categoryFilter}
+                onChange={handleCategoryChange}
+                displayEmpty
+                sx={{ height: "36px", fontSize: "0.875rem" }}
+              >
+                <MenuItem value="All">All</MenuItem>
+                <MenuItem value="Journal Paper">Journal Paper</MenuItem>
+                <MenuItem value="Conference Paper">Conference Paper</MenuItem>
+                <MenuItem value="Patent">Patent</MenuItem>
+                <MenuItem value="Book Chapter">Book Chapter</MenuItem>
+              </Select>
+            </FormControl>
           </MDBox>
-          {renderMenu}
+        </MDBox>
+        <MDBox display="flex" alignItems="center" px={3} pb={2}>
+          <MDBox display="flex" alignItems="center" mr={2}>
+            <MDTypography
+              variant="caption"
+              sx={{
+                color: ({ palette: { success } }) => success.dark,
+                fontSize: "1.2rem",
+                lineHeight: 1.5,
+                mr: 0.5,
+              }}
+            >
+              ●
+            </MDTypography>
+            <MDTypography
+              variant="caption"
+              color="dark"
+              sx={{ fontSize: "0.75rem", lineHeight: 1.5 }}
+            >
+              Verified
+            </MDTypography>
+          </MDBox>
+          <MDBox display="flex" alignItems="center">
+            <MDTypography
+              variant="caption"
+              sx={{
+                color: ({ palette: { warning } }) => warning.dark,
+                fontSize: "1.2rem",
+                lineHeight: 1.5,
+                mr: 0.5,
+              }}
+            >
+              ●
+            </MDTypography>
+            <MDTypography
+              variant="caption"
+              color="dark"
+              sx={{ fontSize: "0.75rem", lineHeight: 1.5 }}
+            >
+              Pending
+            </MDTypography>
+          </MDBox>
         </MDBox>
         {error && (
           <MDBox p={3}>
@@ -216,6 +299,7 @@ function Publications({ refreshPublications, onEditPublication }) {
           />
         </MDBox>
       </Card>
+      {renderMenu}
     </MDBox>
   );
 }
