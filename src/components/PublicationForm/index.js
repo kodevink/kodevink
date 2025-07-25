@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "utils/supabase";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
@@ -11,7 +11,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-export default function PublicationForm({ onClose }) {
+export default function PublicationForm({ onClose, publication }) {
   const [formData, setFormData] = useState({
     title: "",
     publication_type: "",
@@ -27,6 +27,25 @@ export default function PublicationForm({ onClose }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  // Debug publication prop
+  useEffect(() => {
+    console.log("Publication prop:", publication);
+    if (publication) {
+      setFormData({
+        title: publication.title || "",
+        publication_type: publication.publication_type || "",
+        publication_name: publication.publication_name || "",
+        issn_isbn: publication.issn_isbn || "",
+        publication_year: publication.publication_year ? publication.publication_year.toString() : "",
+        doi_link: publication.doi_link || "",
+        document_url: publication.document_url || "",
+        is_scopus_indexed: !!publication.is_scopus_indexed,
+        is_ugc_care: !!publication.is_ugc_care,
+        verification_status: publication.verification_status || "pending",
+      });
+    }
+  }, [publication]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -61,9 +80,19 @@ export default function PublicationForm({ onClose }) {
 
       // Upload PDF to Supabase Storage if a file is selected
       if (file) {
-        // Use user ID as folder, append timestamp and sanitized filename
         const fileName = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
         console.log("Uploading file:", fileName, "Size:", file.size, "Type:", file.type);
+
+        // Delete existing PDF if editing and new file is uploaded
+        if (publication && publication.document_url) {
+          const oldFileName = publication.document_url.split("/").pop();
+          const { error: deleteError } = await supabase.storage
+            .from("publication-documents")
+            .remove([`${user.id}/${oldFileName}`]);
+          if (deleteError) {
+            console.error("Error deleting old PDF:", deleteError);
+          }
+        }
 
         const { error: uploadError, data: uploadData } = await supabase.storage
           .from("publication-documents")
@@ -78,7 +107,6 @@ export default function PublicationForm({ onClose }) {
         }
         console.log("Upload successful:", uploadData);
 
-        // Get the public URL for the uploaded file
         const { data: urlData } = supabase.storage
           .from("publication-documents")
           .getPublicUrl(fileName);
@@ -89,23 +117,31 @@ export default function PublicationForm({ onClose }) {
         console.log("Public file URL:", documentUrl);
       }
 
-      // Insert publication data into Supabase
+      // Insert or update publication data
       const publicationData = {
         ...formData,
         profile_id: user.id,
         publication_year: formData.publication_year ? parseInt(formData.publication_year) : null,
         document_url: documentUrl,
       };
-      console.log("Inserting publication data:", publicationData);
+      console.log("Submitting publication data:", publicationData);
 
-      const { error: insertError } = await supabase.from("publications").insert(publicationData);
-
-      if (insertError) {
-        throw new Error(`Error adding publication: ${insertError.message}`);
+      let response;
+      if (publication) {
+        response = await supabase
+          .from("publications")
+          .update(publicationData)
+          .eq("id", publication.id);
+      } else {
+        response = await supabase.from("publications").insert(publicationData);
       }
 
-      console.log("Publication added successfully");
-      alert("Publication added successfully!");
+      if (response.error) {
+        throw new Error(`Error ${publication ? "updating" : "adding"} publication: ${response.error.message}`);
+      }
+
+      console.log("Publication", publication ? "updated" : "added", "successfully");
+      alert(`Publication ${publication ? "updated" : "added"} successfully!`);
       setFormData({
         title: "",
         publication_type: "",
@@ -137,14 +173,15 @@ export default function PublicationForm({ onClose }) {
         backgroundColor: "#ffffff",
         borderRadius: "12px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        maxWidth: "500px",
-        width: "100%",
+        maxWidth: "600px",
+        width: "90%",
         mx: "auto",
         position: "relative",
+        zIndex: 1400,
       }}
     >
       <MDTypography variant="h6" mb={2} color="dark">
-        Add New Publication
+        {publication ? "Edit Publication" : "Add New Publication"}
       </MDTypography>
       {error && (
         <MDTypography variant="body2" color="error" mb={2}>
@@ -266,11 +303,15 @@ export default function PublicationForm({ onClose }) {
                 background: "transparent",
               }}
             />
-            {file && (
+            {file ? (
               <MDTypography variant="caption" color="text">
                 {file.name}
               </MDTypography>
-            )}
+            ) : publication && publication.document_url ? (
+              <MDTypography variant="caption" color="text">
+                {publication.document_url.split("/").pop()}
+              </MDTypography>
+            ) : null}
           </MDBox>
         </FormControl>
       </MDBox>
@@ -305,7 +346,7 @@ export default function PublicationForm({ onClose }) {
           color="info"
           disabled={uploading}
         >
-          {uploading ? "Submitting..." : "Submit"}
+          {uploading ? "Submitting..." : publication ? "Update" : "Submit"}
         </MDButton>
         <MDButton variant="outlined" color="dark" onClick={onClose}>
           Cancel

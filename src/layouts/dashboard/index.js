@@ -1,101 +1,74 @@
 import { useEffect, useState } from "react";
-
-// @mui material components
+import { supabase } from "utils/supabase";
 import Grid from "@mui/material/Grid";
-
-// Material Dashboard 2 React components
-import MDBox from "components/MDBox";
 import Modal from "@mui/material/Modal";
-
-// Material Dashboard 2 React example components
+import MDBox from "components/MDBox";
+import MDButton from "components/MDButton";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import PieChart from "examples/Charts/PieChart";
-import MDButton from "components/MDButton";
-import PublicationForm from "components/PublicationForm";
-
-
-// Dashboard components
-// import Projects from "layouts/dashboard/components/Projects";
-
-// Data
+import Publications from "layouts/dashboard/components/Publications";
+import PublicationForm from "components/PublicationForm"
 import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
-import Publications from "./components/Publications";
 
 function Dashboard() {
   const { sales, tasks } = reportsLineChartData;
-
   const [openModal, setOpenModal] = useState(false);
+  const [publications, setPublications] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    verified: 0,
+    pending: 0,
+    thisYear: 0,
+  });
 
-  const publications = [
-    {
-      id: 1,
-      title: "A Study on a Novel Machine Learning Algorithm",
-      publication_type: "Journal Paper",
-      publication_year: 2024,
-      verification_status: "verified",
-      profiles: { full_name: "Dr. Anjali Sharma" }
-    },
-    {
-      id: 2,
-      title: "Innovations in Cloud Computing Security",
-      publication_type: "Conference Paper",
-      publication_year: 2024,
-      verification_status: "pending",
-      profiles: { full_name: "Dr. Anjali Sharma" }
-    },
-    {
-      id: 3,
-      title: "System and Method for Data Encryption",
-      publication_type: "Patent",
-      publication_year: 2023,
-      verification_status: "verified",
-      profiles: { full_name: "Dr. Anjali Sharma" }
-    },
-    {
-      id: 4,
-      title: "Advanced Topics in Quantum Physics",
-      publication_type: "Book Chapter",
-      publication_year: 2022,
-      verification_status: "verified",
-      profiles: { full_name: "Dr. Anjali Sharma" }
-    },
-    {
-      id: 5,
-      title: "The Impact of AI on Modern Education",
-      publication_type: "Journal Paper",
-      publication_year: 2023,
-      verification_status: "verified",
-      profiles: { full_name: "Dr. Anjali Sharma" }
-    },
-  ];
+  // Fetch publications for the authenticated user
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          throw new Error("User not authenticated");
+        }
+        const { data, error } = await supabase
+          .from("publications")
+          .select("*")
+          .eq("profile_id", user.id);
+        if (error) {
+          throw new Error(`Error fetching publications: ${error.message}`);
+        }
+        setPublications(data || []);
 
+        // Calculate statistics
+        const currentYear = new Date().getFullYear();
+        const total = data.length;
+        const verified = data.filter((pub) => pub.verification_status === "verified").length;
+        const pending = data.filter((pub) => pub.verification_status === "pending").length;
+        const thisYear = data.filter((pub) => pub.publication_year === currentYear).length;
+        setStats({ total, verified, pending, thisYear });
+      } catch (err) {
+        console.error("Error fetching publications:", err.message);
+      }
+    };
+    fetchPublications();
+  }, []);
+
+  // Pie chart data
   const typeCounts = publications.reduce((acc, pub) => {
     acc[pub.publication_type] = (acc[pub.publication_type] || 0) + 1;
     return acc;
   }, {});
 
-  const doughnutChartData = {
+  const pieChartData = {
     labels: Object.keys(typeCounts),
     datasets: {
       label: "Publications",
       backgroundColors: ["primary", "success", "dark", "info"],
       data: Object.values(typeCounts),
     },
-    cutout: "60%", // Matches default cutout in component
   };
-
-  const pieChartData = {
-    labels: Object.keys(typeCounts),
-    datasets: {
-      label: "Publications",
-      backgroundColors: ["primary", "success", "dark", "info"], // Aligned with Material Dashboard color palette
-      data: Object.values(typeCounts),
-    },
-  };
-
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
@@ -127,7 +100,7 @@ function Dashboard() {
                 color="dark"
                 icon="library_books"
                 title="Total Publications"
-                count={22}
+                count={stats.total}
                 percentage={{
                   color: "success",
                   amount: "+10%",
@@ -141,7 +114,7 @@ function Dashboard() {
               <ComplexStatisticsCard
                 icon="verified"
                 title="Verified Submissions"
-                count="18"
+                count={stats.verified}
                 percentage={{
                   color: "success",
                   amount: "+3%",
@@ -156,7 +129,7 @@ function Dashboard() {
                 color="success"
                 icon="pending_actions"
                 title="Pending Verifications"
-                count="4"
+                count={stats.pending}
                 percentage={{
                   color: "success",
                   amount: "+1%",
@@ -171,7 +144,7 @@ function Dashboard() {
                 color="primary"
                 icon="calendar_month"
                 title="Publications This Year"
-                count="2"
+                count={stats.thisYear}
                 percentage={{
                   color: "error",
                   amount: "-5%",
@@ -222,10 +195,9 @@ function Dashboard() {
             </Grid>
           </Grid>
         </MDBox>
-
-        <MDBox>
+        <MDBox mt={1}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={20}>
+            <Grid item xs={12}>
               <Publications />
             </Grid>
           </Grid>
