@@ -55,7 +55,7 @@ export default function PublicationForm({ onClose }) {
         if (file) {
             const fileName = `${Date.now()}_${file.name}`;
             const { error: uploadError } = await supabase.storage
-                .from("research-papers")
+                .from("publication-documents")
                 .upload(fileName, file);
             if (uploadError) {
                 setError("Error uploading PDF: " + uploadError.message);
@@ -65,7 +65,7 @@ export default function PublicationForm({ onClose }) {
 
             // Get the public URL for the uploaded file
             const { data: urlData } = supabase.storage
-                .from("research-papers")
+                .from("publication-documents")
                 .getPublicUrl(fileName);
             documentUrl = urlData.publicUrl;
         }

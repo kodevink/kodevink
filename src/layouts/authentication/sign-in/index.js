@@ -1,64 +1,36 @@
 import { useState } from "react";
-import { supabase } from "utils/supabase";
-// react-router-dom components
-import { Link, useNavigate } from "react-router-dom";
-
-// @mui material components
+import { Link } from "react-router-dom";
 import Card from "@mui/material/Card";
-import Switch from "@mui/material/Switch";
-import Grid from "@mui/material/Grid";
-import MuiLink from "@mui/material/Link";
-
-// @mui icons
-import FacebookIcon from "@mui/icons-material/Facebook";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import GoogleIcon from "@mui/icons-material/Google";
-
-// Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
-
-// Authentication layout components
 import BasicLayout from "layouts/authentication/components/BasicLayout";
-
-// Images
 import bgImage from "assets/images/bg-sign-in-basic.jpeg";
+import { supabase } from "utils/supabase";
 
 function Basic() {
-  const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
-
-  const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
   const handleSignIn = async (event) => {
-    event.preventDefault(); // Prevent form from reloading the page
+    event.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-
-      console.log(`Email: ${email}, Password: ${password}`);
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-
-      if (error) {
-        throw error;
-      }
-      console.log("Login successful");
-
-      // If login is successful, navigate to the dashboard
-      navigate("/dashboard");
-
+      if (error) throw error;
+      console.log("Sign-in successful, user:", data.user);
+      await supabase.auth.getSession(); // Force session refresh
     } catch (error) {
       setError(error.message);
+      console.error("Sign-in error:", error.message);
     } finally {
       setLoading(false);
     }
@@ -81,83 +53,60 @@ function Basic() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          
-          <Grid
-            container
-            spacing={3}
-            justifyContent="center"
-            sx={{ mt: 1, mb: 2 }}
-          >
-            <Grid item xs={2}>
-              <MDTypography
-                component={MuiLink}
-                href="#"
-                variant="body1"
-                color="white"
-              >
-                <FacebookIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography
-                component={MuiLink}
-                href="#"
-                variant="body1"
-                color="white"
-              >
-                <GitHubIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography
-                component={MuiLink}
-                href="#"
-                variant="body1"
-                color="white"
-              >
-                <GoogleIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-          </Grid>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
-          <MDBox component="form" role="form" onSubmit={handleSignIn}>
+          <MDBox component="form" role="form" aria-label="Sign in" onSubmit={handleSignIn}>
             <MDBox mb={2}>
-              <MDInput type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+              <MDInput
+                type="email"
+                label="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                required
+              />
             </MDBox>
             <MDBox mb={2}>
-              <MDInput type="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
+              <MDInput
+                type="password"
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                required
+              />
             </MDBox>
-            <MDBox display="flex" alignItems="center" ml={-1}>
-              <Switch checked={rememberMe} onChange={handleSetRememberMe} />
-              <MDTypography
-                variant="button"
-                fontWeight="regular"
-                color="text"
-                onClick={handleSetRememberMe}
-                sx={{ cursor: "pointer", userSelect: "none", ml: -1 }}
-              >
-                &nbsp;&nbsp;Remember me
-              </MDTypography>
-            </MDBox>
+            {error && (
+              <MDBox mb={2}>
+                <MDTypography variant="caption" color="error">
+                  {error}
+                </MDTypography>
+              </MDBox>
+            )}
             <MDBox mt={4} mb={1}>
               <MDButton
                 variant="gradient"
                 color="info"
                 fullWidth
                 type="submit"
+                disabled={loading}
               >
-                sign in
+                {loading ? "Signing in..." : "Sign in"}
               </MDButton>
             </MDBox>
             <MDBox textAlign="center">
-              <MDTypography variant="button" color="text" component={Link} to="/authentication/reset-password">
-                Forgot Password ?
+              <MDTypography
+                variant="button"
+                color="text"
+                component={Link}
+                to="/reset-password"
+              >
+                Forgot Password?
               </MDTypography>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">
-                Don&apos;t have an account?{" "}
+                Don't have an account?{" "}
                 <MDTypography
                   component={Link}
                   to="/authentication/sign-up"

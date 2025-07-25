@@ -1,122 +1,110 @@
-import { useState, useEffect, useMemo } from "react";
-
-// react-router components
+import { useEffect, useState, createContext, useContext } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-
-// @mui material components
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Icon from "@mui/material/Icon";
-
-// Material Dashboard 2 React components
 import MDBox from "components/MDBox";
-
-// Material Dashboard 2 React example components
+import MDTypography from "components/MDTypography";
 import Sidenav from "examples/Sidenav";
-
-// Material Dashboard 2 React themes
 import theme from "assets/theme";
-import themeRTL from "assets/theme/theme-rtl";
-
-// Material Dashboard 2 React Dark Mode themes
 import themeDark from "assets/theme-dark";
-import themeDarkRTL from "assets/theme-dark/theme-rtl";
-
-// RTL plugins
-import rtlPlugin from "stylis-plugin-rtl";
-import { CacheProvider } from "@emotion/react";
-import createCache from "@emotion/cache";
-
-// Material Dashboard 2 React routes
-import routes from "routes";
-
-// Material Dashboard 2 React contexts
-import {
-  useMaterialUIController,
-  setMiniSidenav,
-  setOpenConfigurator,
-} from "context";
-
-// Images
+import { useMaterialUIController, setOpenConfigurator } from "context";
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
-
 import UpdatePassword from "layouts/authentication/update-password";
+import SignIn from "layouts/authentication/sign-in";
+import routes from "routes";
+import { supabase } from "utils/supabase";
+import ResetPassword from "layouts/authentication/reset-password/cover"
 
-export default function App() {
+const AuthContext = createContext();
+
+function useAuth() {
+  return useContext(AuthContext);
+}
+
+function ProtectedRoute({ children, requiresAuth }) {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  console.log(
+    "ProtectedRoute: isAuthenticated =", isAuthenticated,
+    "requiresAuth =", requiresAuth,
+    "path =", location.pathname
+  );
+
+  if (isAuthenticated === null) {
+    return (
+      <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <MDTypography>Loading...</MDTypography>
+      </MDBox>
+    );
+  }
+
+  if (requiresAuth && !isAuthenticated) {
+    console.log("Redirecting to /login from:", location.pathname);
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!requiresAuth && isAuthenticated) {
+    const from = location.state?.from?.pathname || "/dashboard";
+    console.log("Redirecting to", from, "from:", location.pathname);
+    return <Navigate to={from} replace />;
+  }
+
+  return children;
+}
+
+function App() {
   const [controller, dispatch] = useMaterialUIController();
-  const {
-    miniSidenav,
-    direction,
-    layout,
-    openConfigurator,
-    sidenavColor,
-    transparentSidenav,
-    whiteSidenav,
-    darkMode,
-  } = controller;
-  const [onMouseEnter, setOnMouseEnter] = useState(false);
-  const [rtlCache, setRtlCache] = useState(null);
+  const { layout, openConfigurator, sidenavColor, transparentSidenav, whiteSidenav, darkMode } = controller;
   const { pathname } = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
-  // Cache for the rtl
-  useMemo(() => {
-    const cacheRtl = createCache({
-      key: "rtl",
-      stylisPlugins: [rtlPlugin],
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("App: Initial session check:", !!session);
+      setIsAuthenticated(!!session);
+    };
+    initializeAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("App: Auth event:", event, "session:", !!session);
+      setIsAuthenticated(!!session);
     });
 
-    setRtlCache(cacheRtl);
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  // Open sidenav when mouse enter on mini sidenav
-  const handleOnMouseEnter = () => {
-    if (miniSidenav && !onMouseEnter) {
-      setMiniSidenav(dispatch, false);
-      setOnMouseEnter(true);
-    }
-  };
-
-  // Close sidenav when mouse leave mini sidenav
-  const handleOnMouseLeave = () => {
-    if (onMouseEnter) {
-      setMiniSidenav(dispatch, true);
-      setOnMouseEnter(false);
-    }
-  };
-
-  // Change the openConfigurator state
-  const handleConfiguratorOpen = () =>
-    setOpenConfigurator(dispatch, !openConfigurator);
-
-  // Setting the dir attribute for the body element
-  useEffect(() => {
-    document.body.setAttribute("dir", direction);
-  }, [direction]);
-
-  // Setting page scroll to 0 when changing the route
   useEffect(() => {
     document.documentElement.scrollTop = 0;
     document.scrollingElement.scrollTop = 0;
   }, [pathname]);
+
+  const handleConfiguratorOpen = () => setOpenConfigurator(dispatch, !openConfigurator);
 
   const getRoutes = (allRoutes) =>
     allRoutes.map((route) => {
       if (route.collapse) {
         return getRoutes(route.collapse);
       }
-
       if (route.route) {
         return (
           <Route
             exact
             path={route.route}
-            element={route.component}
+            element={
+              <ProtectedRoute requiresAuth={route.requiresAuth ?? true}>
+                {route.component}
+              </ProtectedRoute>
+            }
             key={route.key}
           />
         );
       }
-
       return null;
     });
 
@@ -138,37 +126,66 @@ export default function App() {
       sx={{ cursor: "pointer" }}
       onClick={handleConfiguratorOpen}
     >
-      <Icon fontSize="small" color="inherit">
-        settings
-      </Icon>
+      <Icon fontSize="small" color="inherit">settings</Icon>
     </MDBox>
   );
 
   return (
-    <ThemeProvider theme={darkMode ? themeDark : theme}>
-      <CssBaseline />
-      {layout === "dashboard" && (
-        <>
-          <Sidenav
-            color={sidenavColor}
-            brand={
-              (transparentSidenav && !darkMode) || whiteSidenav
-                ? brandDark
-                : brandWhite
+    <AuthContext.Provider value={{ isAuthenticated }}>
+      <ThemeProvider theme={darkMode ? themeDark : theme}>
+        <CssBaseline />
+        {layout === "dashboard" && isAuthenticated && (
+          <>
+            <Sidenav
+              color={sidenavColor}
+              brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
+              brandName="Shudh Kosh"
+              routes={routes}
+            />
+            {configsButton}
+          </>
+        )}
+        <Routes>
+          <Route
+            exact
+            path="/login"
+            element={
+              <ProtectedRoute requiresAuth={false}>
+                <SignIn />
+              </ProtectedRoute>
             }
-            brandName="Shodh Kosh"
-            routes={routes}
-            onMouseEnter={handleOnMouseEnter}
-            onMouseLeave={handleOnMouseLeave}
           />
-          {configsButton}
-        </>
-      )}
-      <Routes>
-        {getRoutes(routes)}
-        <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
-      </Routes>
-    </ThemeProvider>
+          <Route
+            exact
+            path="/reset-password"
+            element={
+              <ProtectedRoute requiresAuth={false}>
+                <ResetPassword />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            exact
+            path="/update-password"
+            element={
+              <ProtectedRoute requiresAuth={true}>
+                <UpdatePassword />
+              </ProtectedRoute>
+            }
+          />
+          {getRoutes(routes)}
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute requiresAuth={true}>
+                <Navigate to="/dashboard" replace />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </ThemeProvider>
+    </AuthContext.Provider>
   );
 }
+
+export default App;
