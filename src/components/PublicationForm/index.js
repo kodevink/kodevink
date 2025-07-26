@@ -62,6 +62,7 @@ export default function PublicationForm({ onClose, onSubmitSuccess, editPublicat
           document_url: "",
           is_scopus_indexed: false,
           is_ugc_care: false,
+
           verification_status: "pending",
         });
         setExistingFileUrl("");
