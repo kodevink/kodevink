@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Grid from "@mui/material/Grid";
 import Modal from "@mui/material/Modal";
 import MDBox from "components/MDBox";
@@ -6,22 +6,17 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import ProfileForm from "layouts/profile/form/ProfileForm";
 import { supabase } from "utils/supabase";
 import Icon from "@mui/material/Icon";
 
 function Profile() {
     const [profile, setProfile] = useState(null);
-    const [stats, setStats] = useState({
-        total: 0,
-        verified: 0,
-        scopusIndexed: 0,
-        ugcCare: 0,
-    });
     const [openModal, setOpenModal] = useState(false);
+    const [error, setError] = useState("");
+    const fileInputRef = useRef(null);
 
-    // Fetch profile and publications
+    // Fetch profile with department and college details
     const fetchData = async () => {
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -29,32 +24,30 @@ function Profile() {
                 throw new Error("User not authenticated");
             }
 
-            // Fetch profile
+            // Fetch profile with joined department and college
             const { data: profileData, error: profileError } = await supabase
                 .from("profiles")
-                .select("*")
+                .select(`
+          *,
+          department:departments (
+            dname,
+            college:colleges (
+              college_name
+            )
+          )
+        `)
                 .eq("id", user.id)
                 .single();
+
             if (profileError && profileError.code !== "PGRST116") {
                 throw new Error(`Error fetching profile: ${profileError.message}`);
             }
-            setProfile(profileData || { id: user.id, email: user.email });
-
-            // Fetch publications for stats
-            const { data: publications, error: pubError } = await supabase
-                .from("publications")
-                .select("*")
-                .eq("profile_id", user.id);
-            if (pubError) {
-                throw new Error(`Error fetching publications: ${pubError.message}`);
-            }
-            const total = publications.length;
-            const verified = publications.filter((pub) => pub.verification_status === "verified").length;
-            const scopusIndexed = publications.filter((pub) => pub.is_scopus_indexed).length;
-            const ugcCare = publications.filter((pub) => pub.is_ugc_care).length;
-            setStats({ total, verified, scopusIndexed, ugcCare });
+            console.log("Fetching Profile data:", profileData);
+            // Merge user.email with profileData
+            setProfile(profileData ? { ...profileData, email: user.email } : { id: user.id, email: user.email });
         } catch (err) {
             console.error("Error fetching data:", err.message);
+            setError(err.message);
         }
     };
 
@@ -63,15 +56,93 @@ function Profile() {
     }, []);
 
     const handleOpenModal = () => {
+        console.log("Opening Edit Profile modal");
         setOpenModal(true);
     };
 
     const handleCloseModal = () => {
+        console.log("Closing Edit Profile modal");
         setOpenModal(false);
     };
 
     const handleSubmitSuccess = () => {
+        console.log("Profile updated successfully, refreshing data");
         fetchData();
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            console.log("No file selected");
+            return;
+        }
+
+        // Validate file type and size
+        const validTypes = ["image/jpeg", "image/png"];
+        if (!validTypes.includes(file.type)) {
+            console.error("Invalid file type:", file.type);
+            setError("Please upload a JPG or PNG file.");
+            return;
+        }
+        if (file.size > 1 * 1024 * 1024) {
+            console.error("File size exceeds 1MB:", file.size);
+            setError("File size must be less than 1MB.");
+            return;
+        }
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                throw new Error("User not authenticated");
+            }
+
+            // Generate unique filename
+            const fileExt = file.name.split(".").pop();
+            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+            console.log("Uploading profile picture:", fileName);
+
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from("profiles")
+                .upload(fileName, file, {
+                    cacheControl: "3600",
+                    upsert: true,
+                });
+            if (uploadError) {
+                throw new Error(`Error uploading profile picture: ${uploadError.message}`);
+            }
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from("profiles")
+                .getPublicUrl(fileName);
+            if (!urlData?.publicUrl) {
+                throw new Error("Failed to retrieve public URL");
+            }
+            console.log("Profile picture uploaded, public URL:", urlData.publicUrl);
+
+            // Update profile with new URL
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update({ profile_picture_url: urlData.publicUrl })
+                .eq("id", user.id);
+            if (updateError) {
+                throw new Error(`Error updating profile: ${updateError.message}`);
+            }
+
+            // Refresh profile data
+            await fetchData();
+            setError("");
+            alert("Profile picture updated successfully!");
+        } catch (err) {
+            console.error("Error handling file upload:", err.message);
+            setError(err.message);
+        }
+    };
+
+    const triggerFileInput = () => {
+        console.log("Triggering file input click");
+        fileInputRef.current.click();
     };
 
     return (
@@ -101,7 +172,7 @@ function Profile() {
                     />
                 </Modal>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={6}>
                         <MDBox
                             p={3}
                             bgColor="white"
@@ -112,11 +183,43 @@ function Profile() {
                             <MDTypography variant="h5" color="dark" mb={2}>
                                 Profile Details
                             </MDTypography>
-                            <MDBox mb={2}>
-                                <MDTypography variant="body2" color="text">
-                                    <strong>Name:</strong> {profile?.name || "Not set"}
-                                </MDTypography>
+                            <MDBox mb={2} display="flex" justifyContent="center">
+                                <img
+                                    src={profile?.profile_picture_url || "https://static.vecteezy.com/system/resources/previews/026/175/089/non_2x/professor-avatar-round-flat-icon-vector.jpg"}
+                                    alt="Profile"
+                                    style={{
+                                        width: "150px",
+                                        height: "150px",
+                                        borderRadius: "50%",
+                                        objectFit: "cover",
+                                        marginBottom: "16px",
+                                    }}
+                                />
                             </MDBox>
+                            <MDBox mb={2} display="flex" justifyContent="center">
+                                <MDButton
+                                    variant="outlined"
+                                    color="info"
+                                    size="small"
+                                    onClick={triggerFileInput}
+                                >
+                                    Upload Profile Picture
+                                </MDButton>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png"
+                                    style={{ display: "none" }}
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                />
+                            </MDBox>
+                            {error && (
+                                <MDBox mb={2}>
+                                    <MDTypography variant="body2" color="error">
+                                        {error}
+                                    </MDTypography>
+                                </MDBox>
+                            )}
                             <MDBox mb={2}>
                                 <MDTypography variant="body2" color="text">
                                     <strong>Email:</strong> {profile?.email || "Not set"}
@@ -124,12 +227,17 @@ function Profile() {
                             </MDBox>
                             <MDBox mb={2}>
                                 <MDTypography variant="body2" color="text">
-                                    <strong>Institution:</strong> {profile?.institution || "Not set"}
+                                    <strong>Name:</strong> {profile?.full_name || "Not set"}
                                 </MDTypography>
                             </MDBox>
                             <MDBox mb={2}>
                                 <MDTypography variant="body2" color="text">
-                                    <strong>Department:</strong> {profile?.department || "Not set"}
+                                    <strong>College Name:</strong> {profile?.department?.college?.college_name || "Not set"}
+                                </MDTypography>
+                            </MDBox>
+                            <MDBox mb={2}>
+                                <MDTypography variant="body2" color="text">
+                                    <strong>Department Name:</strong> {profile?.department?.dname || "Not set"}
                                 </MDTypography>
                             </MDBox>
                             <MDBox mb={2}>
@@ -144,7 +252,7 @@ function Profile() {
                             </MDBox>
                         </MDBox>
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={6}>
                         <MDBox
                             p={3}
                             bgColor="white"
@@ -207,72 +315,6 @@ function Profile() {
                                     LinkedIn
                                 </MDTypography>
                             </MDBox>
-                        </MDBox>
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                        <MDBox
-                            p={3}
-                            bgColor="white"
-                            borderRadius="lg"
-                            shadow="lg"
-                            sx={{ height: "100%", minHeight: "400px" }}
-                        >
-                            <MDTypography variant="h5" color="dark" mb={2}>
-                                Research Metrics
-                            </MDTypography>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                    <ComplexStatisticsCard
-                                        color="dark"
-                                        icon="library_books"
-                                        title="Total Publications"
-                                        count={stats.total}
-                                        percentage={{
-                                            color: "success",
-                                            amount: "+10%",
-                                            label: "than last year",
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <ComplexStatisticsCard
-                                        icon="verified"
-                                        title="Verified Submissions"
-                                        count={stats.verified}
-                                        percentage={{
-                                            color: "success",
-                                            amount: "+3%",
-                                            label: "than last year",
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <ComplexStatisticsCard
-                                        color="info"
-                                        icon="school"
-                                        title="Scopus Indexed"
-                                        count={stats.scopusIndexed}
-                                        percentage={{
-                                            color: "success",
-                                            amount: "+5%",
-                                            label: "than last year",
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <ComplexStatisticsCard
-                                        color="warning"
-                                        icon="verified_user"
-                                        title="UGC-CARE Listed"
-                                        count={stats.ugcCare}
-                                        percentage={{
-                                            color: "success",
-                                            amount: "+2%",
-                                            label: "than last year",
-                                        }}
-                                    />
-                                </Grid>
-                            </Grid>
                         </MDBox>
                     </Grid>
                 </Grid>
