@@ -12,7 +12,7 @@ import FacultyForm from "./components/FacultyForm"; // Assuming a new form compo
 import { supabase } from "utils/supabase";
 import MDTypography from "components/MDTypography";
 
-function FacultyCoordinatorDashboard({ role = null }) {
+function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
     const [activeSection, setActiveSection] = useState("dashboard");
     const [facultyData, setFacultyData] = useState([]);
     const [newFaculty, setNewFaculty] = useState({ name: "", email: "", department: "" });
@@ -59,20 +59,36 @@ function FacultyCoordinatorDashboard({ role = null }) {
         },
     };
 
+
+
     useEffect(() => {
         const fetchFaculty = async () => {
             try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+                if (!user) throw new Error("User not authenticated");
+
                 const { data, error } = await supabase
-                    .from("faculty")
-                    .select("*");
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", user.id)
+                    .single();
+
                 if (error) throw error;
+
                 setFacultyData(data || []);
+                console.log("Fetching faculty:", data);
             } catch (err) {
-                console.error("Error fetching faculty:", err.message);
+                console.error("Error fetching faculty:", err.message || err);
             }
         };
         fetchFaculty();
         console.log(`Role detected: ${role}`);
+
+        // if (role) {
+        //     fetchFaculty();
+        //     console.log(`Role detected: ${role}`);
+        // }
     }, [role]);
 
     const handleAddFaculty = async (e) => {
@@ -83,7 +99,7 @@ function FacultyCoordinatorDashboard({ role = null }) {
         }
         try {
             const { error } = await supabase
-                .from("faculty")
+                .from("profiles")
                 .insert(newFaculty);
             if (error) throw error;
             setFacultyData([...facultyData, { id: facultyData.length + 1, ...newFaculty }]);

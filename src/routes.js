@@ -2,10 +2,51 @@ import Icon from "@mui/material/Icon";
 import SignIn from "layouts/authentication/sign-in";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
+import FacultyCoordinatorDashboard from "layouts/faculty-coordinator-dashboard";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
 const routes = [
+    {
+        type: "collapse",
+        name: "Faculty Coordinator",
+        key: "faculty-coordinator",
+        icon: <Icon fontSize="small">supervisor_account</Icon>,
+        route: "/faculty-coordinator",
+        collapse: [
+            {
+                name: "Coordinator Dashboard",
+                key: "coordinator-dashboard",
+                route: "/faculty-coordinator/dashboard",
+                component: <FacultyCoordinatorDashboard />,
+                requiresAuth: true,
+                requiredRole: "faculty-coordinator",
+            },
+            {
+                name: "Manage Faculty",
+                key: "manage-faculty",
+                route: "/faculty-coordinator/manage-faculty",
+                component: <FacultyCoordinatorDashboard />,
+                requiresAuth: true,
+            },
+            {
+                name: "Approve Leave",
+                key: "approve-leave",
+                route: "/faculty-coordinator/approve-leave",
+                component: <FacultyCoordinatorDashboard />,
+                requiresAuth: true,
+            },
+        ],
+    },
+    // {
+    //     type: "collapse",
+    //     name: "Coordinator Dashboard",
+    //     key: "coordinator-dashboard",
+    //     icon: <Icon fontSize="small">dashboard</Icon>,
+    //     route: "/coordinator-dashboard",
+    //     component: <FacultyCoordinatorDashboard />,
+    //     requiresAuth: true,
+    // },
     {
         type: "collapse",
         name: "Dashboard",

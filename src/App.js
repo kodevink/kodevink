@@ -23,12 +23,13 @@ function useAuth() {
   return useContext(AuthContext);
 }
 
-function ProtectedRoute({ children, requiresAuth }) {
-  const { isAuthenticated } = useAuth();
+function ProtectedRoute({ children, requiresAuth, requiredRole }) {
+  const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
 
   console.log(
     "ProtectedRoute: isAuthenticated =", isAuthenticated,
+    "userRole =", userRole,
     "requiresAuth =", requiresAuth,
     "path =", location.pathname
   );
@@ -47,6 +48,9 @@ function ProtectedRoute({ children, requiresAuth }) {
   }
 
   if (!requiresAuth && isAuthenticated) {
+    if (location.pathname.startsWith("/faculty-coordinator") && userRole !== "coordinator") {
+      return <Navigate to="/dashboard" replace />;
+    }
     const from = location.state?.from?.pathname || "/dashboard";
     console.log("Redirecting to", from, "from:", location.pathname);
     return <Navigate to={from} replace />;
@@ -60,12 +64,27 @@ function App() {
   const { layout, openConfigurator, sidenavColor, transparentSidenav, whiteSidenav, darkMode } = controller;
   const { pathname } = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [userRole, setUserRole] = useState(null); // NEW
 
   useEffect(() => {
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       console.log("App: Initial session check:", !!session);
       setIsAuthenticated(!!session);
+      if (session?.user) {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile && !error) {
+          setUserRole(profile.role);
+          console.log("User role fetched:", profile.role);
+        } else {
+          console.error("Error fetching role:", error);
+        }
+      }
     };
     initializeAuth();
 
@@ -131,7 +150,7 @@ function App() {
   );
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated }}>
+    <AuthContext.Provider value={{ isAuthenticated, userRole }}>
       <ThemeProvider theme={darkMode ? themeDark : theme}>
         <CssBaseline />
         {layout === "dashboard" && isAuthenticated && (
