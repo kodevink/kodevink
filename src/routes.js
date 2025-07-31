@@ -6,6 +6,12 @@ import FacultyCoordinatorDashboard from "layouts/faculty-coordinator-dashboard";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
+
+const ROLES = {
+    FACULTY_COORDINATOR: "faculty-coordinator",
+};
+
+
 const routes = [
     {
         type: "collapse",
@@ -13,6 +19,7 @@ const routes = [
         key: "faculty-coordinator",
         icon: <Icon fontSize="small">supervisor_account</Icon>,
         route: "/faculty-coordinator",
+        redirect: "/faculty-coordinator/dashboard",
         collapse: [
             {
                 name: "Coordinator Dashboard",
@@ -20,13 +27,14 @@ const routes = [
                 route: "/faculty-coordinator/dashboard",
                 component: <FacultyCoordinatorDashboard />,
                 requiresAuth: true,
-                requiredRole: "faculty-coordinator",
+                requiredRole: ROLES.FACULTY_COORDINATOR,
             },
             {
                 name: "Manage Faculty",
                 key: "manage-faculty",
                 route: "/faculty-coordinator/manage-faculty",
                 component: <FacultyCoordinatorDashboard />,
+                requiredRole: ROLES.FACULTY_COORDINATOR,
                 requiresAuth: true,
             },
             {
@@ -34,19 +42,11 @@ const routes = [
                 key: "approve-leave",
                 route: "/faculty-coordinator/approve-leave",
                 component: <FacultyCoordinatorDashboard />,
+                requiredRole: ROLES.FACULTY_COORDINATOR,
                 requiresAuth: true,
             },
         ],
     },
-    // {
-    //     type: "collapse",
-    //     name: "Coordinator Dashboard",
-    //     key: "coordinator-dashboard",
-    //     icon: <Icon fontSize="small">dashboard</Icon>,
-    //     route: "/coordinator-dashboard",
-    //     component: <FacultyCoordinatorDashboard />,
-    //     requiresAuth: true,
-    // },
     {
         type: "collapse",
         name: "Dashboard",
@@ -72,6 +72,7 @@ const routes = [
         icon: <Icon fontSize="small">person</Icon>,
         route: "/profile",
         component: <Profile />,
+        requiresAuth: true,
     },
     {
         type: "title",
@@ -80,6 +81,7 @@ const routes = [
         icon: <Icon fontSize="small">login</Icon>,
         route: "/login",
         component: <SignIn />,
+        requiresAuth: false,
     },
     {
         type: "title",
@@ -88,6 +90,7 @@ const routes = [
         icon: <Icon fontSize="small">password</Icon>,
         route: "/reset-password",
         component: <ResetPassword />,
+        requiresAuth: false,
     },
 ];
 

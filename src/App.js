@@ -13,9 +13,9 @@ import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
 import UpdatePassword from "layouts/authentication/update-password";
 import SignIn from "layouts/authentication/sign-in";
+import ResetPassword from "layouts/authentication/reset-password/cover";
 import routes from "routes";
 import { supabase } from "utils/supabase";
-import ResetPassword from "layouts/authentication/reset-password/cover"
 
 const AuthContext = createContext();
 
@@ -27,14 +27,7 @@ function ProtectedRoute({ children, requiresAuth, requiredRole }) {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
 
-  console.log(
-    "ProtectedRoute: isAuthenticated =", isAuthenticated,
-    "userRole =", userRole,
-    "requiresAuth =", requiresAuth,
-    "path =", location.pathname
-  );
-
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null || (requiresAuth && userRole === null)) {
     return (
       <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <MDTypography>Loading...</MDTypography>
@@ -48,12 +41,14 @@ function ProtectedRoute({ children, requiresAuth, requiredRole }) {
   }
 
   if (!requiresAuth && isAuthenticated) {
-    if (location.pathname.startsWith("/faculty-coordinator") && userRole !== "coordinator") {
-      return <Navigate to="/dashboard" replace />;
-    }
     const from = location.state?.from?.pathname || "/dashboard";
     console.log("Redirecting to", from, "from:", location.pathname);
     return <Navigate to={from} replace />;
+  }
+
+  if (requiredRole && userRole !== requiredRole) {
+    console.log(`Role mismatch: required=${requiredRole}, actual=${userRole}`);
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -64,7 +59,7 @@ function App() {
   const { layout, openConfigurator, sidenavColor, transparentSidenav, whiteSidenav, darkMode } = controller;
   const { pathname } = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [userRole, setUserRole] = useState(null); // NEW
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -83,6 +78,7 @@ function App() {
           console.log("User role fetched:", profile.role);
         } else {
           console.error("Error fetching role:", error);
+          setUserRole("default"); // Fallback role
         }
       }
     };
@@ -91,6 +87,23 @@ function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("App: Auth event:", event, "session:", !!session);
       setIsAuthenticated(!!session);
+      if (session?.user) {
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data: profile, error }) => {
+            if (profile && !error) {
+              setUserRole(profile.role);
+            } else {
+              console.error("Error fetching role:", error);
+              setUserRole("default");
+            }
+          });
+      } else {
+        setUserRole(null);
+      }
     });
 
     return () => {
@@ -110,13 +123,23 @@ function App() {
       if (route.collapse) {
         return getRoutes(route.collapse);
       }
+      if (route.redirect) {
+        return (
+          <Route
+            exact
+            path={route.route}
+            element={<Navigate to={route.redirect} replace />}
+            key={route.key}
+          />
+        );
+      }
       if (route.route) {
         return (
           <Route
             exact
             path={route.route}
             element={
-              <ProtectedRoute requiresAuth={route.requiresAuth ?? true}>
+              <ProtectedRoute requiresAuth={route.requiresAuth ?? true} requiredRole={route.requiredRole}>
                 {route.component}
               </ProtectedRoute>
             }
