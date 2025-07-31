@@ -20,12 +20,15 @@ const routes = [
         icon: <Icon fontSize="small">supervisor_account</Icon>,
         route: "/faculty-coordinator",
         redirect: "/faculty-coordinator/dashboard",
+        requiredRole: ROLES.FACULTY_COORDINATOR,
+        requiresAuth: true,
         collapse: [
             {
                 name: "Coordinator Dashboard",
                 key: "coordinator-dashboard",
                 route: "/faculty-coordinator/dashboard",
                 component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">widgets</Icon>,
                 requiresAuth: true,
                 requiredRole: ROLES.FACULTY_COORDINATOR,
             },
@@ -34,17 +37,10 @@ const routes = [
                 key: "manage-faculty",
                 route: "/faculty-coordinator/manage-faculty",
                 component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">manage_accounts</Icon>,
                 requiredRole: ROLES.FACULTY_COORDINATOR,
                 requiresAuth: true,
-            },
-            {
-                name: "Approve Leave",
-                key: "approve-leave",
-                route: "/faculty-coordinator/approve-leave",
-                component: <FacultyCoordinatorDashboard />,
-                requiredRole: ROLES.FACULTY_COORDINATOR,
-                requiresAuth: true,
-            },
+            }
         ],
     },
     {
