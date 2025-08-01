@@ -22,42 +22,6 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// function ProtectedRoute({ children, requiresAuth, requiredRole }) {
-//   const { isAuthenticated, userRole } = useAuth();
-//   const location = useLocation();
-
-//   console.log(
-//     "ProtectedRoute: isAuthenticated =", isAuthenticated,
-//     "userRole =", userRole,
-//     "requiresAuth =", requiresAuth,
-//     "path =", location.pathname
-//   );
-
-//   if (isAuthenticated === null) {
-//     return (
-//       <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-//         <MDTypography>Loading...</MDTypography>
-//       </MDBox>
-//     );
-//   }
-
-//   if (requiresAuth && !isAuthenticated) {
-//     console.log("Redirecting to /login from:", location.pathname);
-//     return <Navigate to="/login" state={{ from: location }} replace />;
-//   }
-
-//   if (!requiresAuth && isAuthenticated) {
-//     if (location.pathname.startsWith("/faculty-coordinator") && userRole !== "faculty-coordinator") {
-//       return <Navigate to="/dashboard" replace />;
-//     }
-//     const from = location.state?.from?.pathname || "/dashboard";
-//     console.log("Redirecting to", from, "from:", location.pathname);
-//     return <Navigate to={from} replace />;
-//   }
-
-//   return children;
-// }
-
 function ProtectedRoute({ children, requiresAuth, requiredRole }) {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
@@ -74,20 +38,6 @@ function ProtectedRoute({ children, requiresAuth, requiredRole }) {
     "requiredRole=",
     requiredRole
   );
-
-  // Wait for authentication and role to be fetched
-  if (isAuthenticated === null || (requiresAuth && userRole === null)) {
-    return (
-      <MDBox
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <MDTypography>Loading...</MDTypography>
-      </MDBox>
-    );
-  }
 
   // Redirect unauthenticated users to login for protected routes
   if (requiresAuth && !isAuthenticated) {
@@ -123,46 +73,66 @@ function App() {
     darkMode,
   } = controller;
   const { pathname } = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [userRole, setUserRole] = useState(null); // NEW
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Default to false
+  const [userRole, setUserRole] = useState(""); // Default to empty string
+
+  const fetchUserRole = async (userId) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching role:", error);
+        setUserRole(""); // Fallback to empty string
+        return;
+      }
+
+      setUserRole(profile?.role || "");
+      console.log("User role fetched:", profile?.role || "");
+    } catch (err) {
+      console.error("Unexpected error fetching role:", err);
+      setUserRole("");
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      console.log("App: Initial session check:", !!session);
-      setIsAuthenticated(!!session);
-      if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log("App: Initial session check:", !!session);
+        setIsAuthenticated(!!session && !!session.user?.email_confirmed_at);
 
-        if (profile && !error) {
-          setUserRole(profile.role);
-          console.log("User role fetched:", profile.role);
+        if (session?.user) {
+          await fetchUserRole(session.user.id);
         } else {
-          console.error("Error fetching role:", error);
+          setUserRole(""); // No user, reset role
         }
+      } catch (err) {
+        console.error("Error initializing auth:", err);
+        setIsAuthenticated(false);
+        setUserRole("");
       }
     };
     initializeAuth();
 
-    // const { data: authListener } = supabase.auth.onAuthStateChange(
-    //   async (event, session) => {
-    //     if (session && session.user.email_confirmed_at) {
-    //       setIsAuthenticated(true);
-    //     } else {
-    //       setIsAuthenticated(false);
-    //     }
-    //   }
-    // );
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("App: Auth event:", event, "session:", !!session);
-      setIsAuthenticated(!!session);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("App: Auth event:", event, "session:", !!session);
+        const isAuth = !!session && !!session.user?.email_confirmed_at;
+        setIsAuthenticated(isAuth);
+
+        if (isAuth && session?.user) {
+          await fetchUserRole(session.user.id);
+        } else {
+          setUserRole(""); // Reset role on logout or no session
+        }
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -176,28 +146,6 @@ function App() {
 
   const handleConfiguratorOpen = () =>
     setOpenConfigurator(dispatch, !openConfigurator);
-
-  // const getRoutes = (allRoutes) =>
-  //   allRoutes.map((route) => {
-  //     if (route.collapse) {
-  //       return getRoutes(route.collapse);
-  //     }
-  //     if (route.route) {
-  //       return (
-  //         <Route
-  //           exact
-  //           path={route.route}
-  //           element={
-  //             <ProtectedRoute requiresAuth={route.requiresAuth ?? true}>
-  //               {route.component}
-  //             </ProtectedRoute>
-  //           }
-  //           key={route.key}
-  //         />
-  //       );
-  //     }
-  //     return null;
-  //   });
 
   const getRoutes = (allRoutes) =>
     allRoutes.map((route) => {
