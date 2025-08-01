@@ -11,11 +11,10 @@ import themeDark from "assets/theme-dark";
 import { useMaterialUIController, setOpenConfigurator } from "context";
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
-import UpdatePassword from "layouts/authentication/update-password";
 import SignIn from "layouts/authentication/sign-in";
+import ResetPassword from "layouts/authentication/reset-password/cover";
 import routes from "routes";
 import { supabase } from "utils/supabase";
-import ResetPassword from "layouts/authentication/reset-password/cover"
 
 const AuthContext = createContext();
 
@@ -23,33 +22,56 @@ function useAuth() {
   return useContext(AuthContext);
 }
 
+const isRecoveryRoute = () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  return (
+    window.location.pathname === "/reset-password" &&
+    searchParams.get("type") === "recovery"
+  );
+};
+
 function ProtectedRoute({ children, requiresAuth }) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  console.log(
-    "ProtectedRoute: isAuthenticated =", isAuthenticated,
-    "requiresAuth =", requiresAuth,
-    "path =", location.pathname
-  );
-
   if (isAuthenticated === null) {
     return (
-      <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <MDBox
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <MDTypography>Loading...</MDTypography>
       </MDBox>
     );
   }
 
+  if (isAuthenticated === false) {
+    return (
+      <MDBox
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <MDTypography variant="h6">
+          Please confirm your email to continue.
+        </MDTypography>
+      </MDBox>
+    );
+  }
+
+  if (isRecoveryRoute()) {
+    return children;
+  }
+
   if (requiresAuth && !isAuthenticated) {
-    console.log("Redirecting to /login from:", location.pathname);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (!requiresAuth && isAuthenticated) {
-    const from = location.state?.from?.pathname || "/dashboard";
-    console.log("Redirecting to", from, "from:", location.pathname);
-    return <Navigate to={from} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -57,22 +79,39 @@ function ProtectedRoute({ children, requiresAuth }) {
 
 function App() {
   const [controller, dispatch] = useMaterialUIController();
-  const { layout, openConfigurator, sidenavColor, transparentSidenav, whiteSidenav, darkMode } = controller;
+  const {
+    layout,
+    openConfigurator,
+    sidenavColor,
+    transparentSidenav,
+    whiteSidenav,
+    darkMode,
+  } = controller;
   const { pathname } = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("App: Initial session check:", !!session);
-      setIsAuthenticated(!!session);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session && session.user.email_confirmed_at) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
     };
     initializeAuth();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("App: Auth event:", event, "session:", !!session);
-      setIsAuthenticated(!!session);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session && session.user.email_confirmed_at) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -84,7 +123,8 @@ function App() {
     document.scrollingElement.scrollTop = 0;
   }, [pathname]);
 
-  const handleConfiguratorOpen = () => setOpenConfigurator(dispatch, !openConfigurator);
+  const handleConfiguratorOpen = () =>
+    setOpenConfigurator(dispatch, !openConfigurator);
 
   const getRoutes = (allRoutes) =>
     allRoutes.map((route) => {
@@ -126,7 +166,9 @@ function App() {
       sx={{ cursor: "pointer" }}
       onClick={handleConfiguratorOpen}
     >
-      <Icon fontSize="small" color="inherit">settings</Icon>
+      <Icon fontSize="small" color="inherit">
+        settings
+      </Icon>
     </MDBox>
   );
 
@@ -138,7 +180,11 @@ function App() {
           <>
             <Sidenav
               color={sidenavColor}
-              brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
+              brand={
+                (transparentSidenav && !darkMode) || whiteSidenav
+                  ? brandDark
+                  : brandWhite
+              }
               brandName="Shudh Kosh"
               routes={routes}
             />
@@ -161,15 +207,6 @@ function App() {
             element={
               <ProtectedRoute requiresAuth={false}>
                 <ResetPassword />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            exact
-            path="/update-password"
-            element={
-              <ProtectedRoute requiresAuth={true}>
-                <UpdatePassword />
               </ProtectedRoute>
             }
           />
