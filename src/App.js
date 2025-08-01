@@ -150,15 +150,19 @@ function App() {
     };
     initializeAuth();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session && session.user.email_confirmed_at) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
-      }
-    );
+    // const { data: authListener } = supabase.auth.onAuthStateChange(
+    //   async (event, session) => {
+    //     if (session && session.user.email_confirmed_at) {
+    //       setIsAuthenticated(true);
+    //     } else {
+    //       setIsAuthenticated(false);
+    //     }
+    //   }
+    // );
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("App: Auth event:", event, "session:", !!session);
+      setIsAuthenticated(!!session);
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
