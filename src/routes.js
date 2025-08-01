@@ -2,10 +2,47 @@ import Icon from "@mui/material/Icon";
 import SignIn from "layouts/authentication/sign-in";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
+import FacultyCoordinatorDashboard from "layouts/faculty-coordinator-dashboard";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
+
+const ROLES = {
+    FACULTY_COORDINATOR: "faculty-coordinator",
+};
+
+
 const routes = [
+    {
+        type: "collapse",
+        name: "Faculty Coordinator",
+        key: "faculty-coordinator",
+        icon: <Icon fontSize="small">supervisor_account</Icon>,
+        route: "/faculty-coordinator",
+        redirect: "/faculty-coordinator/dashboard",
+        requiredRole: ROLES.FACULTY_COORDINATOR,
+        requiresAuth: true,
+        collapse: [
+            {
+                name: "Coordinator Dashboard",
+                key: "coordinator-dashboard",
+                route: "/faculty-coordinator/dashboard",
+                component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">widgets</Icon>,
+                requiresAuth: true,
+                requiredRole: ROLES.FACULTY_COORDINATOR,
+            },
+            {
+                name: "Manage Faculty",
+                key: "manage-faculty",
+                route: "/faculty-coordinator/manage-faculty",
+                component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">manage_accounts</Icon>,
+                requiredRole: ROLES.FACULTY_COORDINATOR,
+                requiresAuth: true,
+            }
+        ],
+    },
     {
         type: "collapse",
         name: "Dashboard",
@@ -31,6 +68,7 @@ const routes = [
         icon: <Icon fontSize="small">person</Icon>,
         route: "/profile",
         component: <Profile />,
+        requiresAuth: true,
     },
     {
         type: "title",
@@ -39,6 +77,7 @@ const routes = [
         icon: <Icon fontSize="small">login</Icon>,
         route: "/login",
         component: <SignIn />,
+        requiresAuth: false,
     },
     {
         type: "title",
@@ -47,6 +86,7 @@ const routes = [
         icon: <Icon fontSize="small">password</Icon>,
         route: "/reset-password",
         component: <ResetPassword />,
+        requiresAuth: false,
     },
 ];
 
