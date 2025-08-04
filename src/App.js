@@ -22,6 +22,50 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const isRecoveryRoute = () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  return (
+    window.location.pathname === "/reset-password" &&
+    searchParams.get("type") === "recovery"
+  );
+};
+
+// function ProtectedRoute({ children, requiresAuth, requiredRole }) {
+//   const { isAuthenticated, userRole } = useAuth();
+//   const location = useLocation();
+
+//   console.log(
+//     "ProtectedRoute: isAuthenticated =", isAuthenticated,
+//     "userRole =", userRole,
+//     "requiresAuth =", requiresAuth,
+//     "path =", location.pathname
+//   );
+
+//   if (isAuthenticated === null) {
+//     return (
+//       <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+//         <MDTypography>Loading...</MDTypography>
+//       </MDBox>
+//     );
+//   }
+
+//   if (requiresAuth && !isAuthenticated) {
+//     console.log("Redirecting to /login from:", location.pathname);
+//     return <Navigate to="/login" state={{ from: location }} replace />;
+//   }
+
+//   if (!requiresAuth && isAuthenticated) {
+//     if (location.pathname.startsWith("/faculty-coordinator") && userRole !== "faculty-coordinator") {
+//       return <Navigate to="/dashboard" replace />;
+//     }
+//     const from = location.state?.from?.pathname || "/dashboard";
+//     console.log("Redirecting to", from, "from:", location.pathname);
+//     return <Navigate to={from} replace />;
+//   }
+
+//   return children;
+// }
+
 function ProtectedRoute({ children, requiresAuth, requiredRole }) {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
@@ -40,7 +84,10 @@ function ProtectedRoute({ children, requiresAuth, requiredRole }) {
   );
 
   // Wait for authentication and role to be fetched
-  if (isAuthenticated === null || (requiresAuth && userRole === null)) {
+  if (
+    isAuthenticated === null ||
+    (requiresAuth && isAuthenticated && userRole === null)
+  ) {
     return (
       <MDBox
         display="flex"
@@ -51,6 +98,10 @@ function ProtectedRoute({ children, requiresAuth, requiredRole }) {
         <MDTypography>Loading...</MDTypography>
       </MDBox>
     );
+  }
+
+  if (isRecoveryRoute()) {
+    return children;
   }
 
   // Redirect unauthenticated users to login for protected routes
@@ -123,10 +174,12 @@ function App() {
     //     }
     //   }
     // );
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("App: Auth event:", event, "session:", !!session);
-      setIsAuthenticated(!!session && session.user.email_confirmed_at);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("App: Auth event:", event, "session:", !!session);
+        setIsAuthenticated(!!session);
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
