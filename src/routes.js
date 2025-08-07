@@ -7,11 +7,10 @@ import FacultyCoordinatorManageFaculty from "layouts/faculty-coordinator-dashboa
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
-
 const ROLES = {
     FACULTY_COORDINATOR: "faculty-coordinator",
+    HOD: "hod",
 };
-
 
 const routes = [
     {
@@ -37,11 +36,41 @@ const routes = [
                 name: "Manage Faculty",
                 key: "manage-faculty",
                 route: "/faculty-coordinator/manage-faculty",
-                component: <FacultyCoordinatorDashboard />,
+                component: <FacultyCoordinatorManageFaculty />,
                 icon: <Icon fontSize="small">manage_accounts</Icon>,
                 requiredRole: ROLES.FACULTY_COORDINATOR,
                 requiresAuth: true,
-            }
+            },
+        ],
+    },
+    {
+        type: "collapse",
+        name: "hod",
+        key: "hod",
+        icon: <Icon fontSize="small">supervisor_account</Icon>,
+        route: "/hod",
+        redirect: "/hod/dashboard",
+        requiredRole: ROLES.HOD,
+        requiresAuth: true,
+        collapse: [
+            {
+                name: "hod Dashboard",
+                key: "hod-dashboard",
+                route: "/hod/dashboard",
+                component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">widgets</Icon>,
+                requiresAuth: true,
+                requiredRole: ROLES.HOD,
+            },
+            {
+                name: "Manage Faculty",
+                key: "manage-faculty",
+                route: "/hod/manage-faculty",
+                component: <FacultyCoordinatorDashboard />,
+                icon: <Icon fontSize="small">manage_accounts</Icon>,
+                requiredRole: ROLES.HOD,
+                requiresAuth: true,
+            },
         ],
     },
     {
