@@ -16,14 +16,45 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 import { supabase } from "utils/supabase";
 
-// FacultyForm component (similar to PublicationForm)
+// FacultyForm component (updated for department and role restrictions)
 function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
     const [formData, setFormData] = useState({
-        name: editFaculty?.name || "",
+        name: editFaculty?.full_name || "",
         email: editFaculty?.email || "",
-        department: editFaculty?.department || "",
+        department: editFaculty?.departments?.dname || "",
         role: editFaculty?.role || "professor",
     });
+    const [userDepartment, setUserDepartment] = useState("");
+    const [userRole, setUserRole] = useState(null);
+
+    // Fetch current user's department and role
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("User not authenticated");
+
+                const { data, error } = await supabase
+                    .from("profiles")
+                    .select(`
+                        role,
+                        departments (
+                        dname
+                        )
+                    `)
+                    .eq("id", user.id)
+                    .single();
+                if (error) throw error;
+
+                setUserDepartment(data.departments?.dname || "");
+                setUserRole(data.role);
+                setFormData((prev) => ({ ...prev, department: data.departments?.dname || "" }));
+            } catch (error) {
+                console.error("Error fetching user data:", error.message);
+            }
+        };
+        fetchUserData();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -36,12 +67,22 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("User not authenticated");
 
+            // Validate role based on userRole
+            const allowedRoles = {
+                "faculty-coordinator": ["professor"],
+                hod: ["professor", "faculty-coordinator"],
+                admin: ["professor", "faculty-coordinator", "hod"],
+            };
+            if (!allowedRoles[userRole]?.includes(formData.role)) {
+                throw new Error(`You are not authorized to set role: ${formData.role}`);
+            }
+
             if (editFaculty) {
                 // Update faculty
                 const { error } = await supabase
                     .from("profiles")
                     .update({
-                        name: formData.name,
+                        full_name: formData.name,
                         email: formData.email,
                         department: formData.department,
                         role: formData.role,
@@ -49,11 +90,11 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                     .eq("id", editFaculty.id);
                 if (error) throw error;
             } else {
-                // Add new faculty (assuming profile creation is handled server-side)
+                // Add new faculty
                 const { error } = await supabase
                     .from("profiles")
                     .insert({
-                        name: formData.name,
+                        full_name: formData.name,
                         email: formData.email,
                         department: formData.department,
                         role: formData.role,
@@ -65,6 +106,20 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
         } catch (error) {
             console.error("Error saving faculty:", error.message);
         }
+    };
+
+    // Determine available roles based on userRole
+    const availableRoles = {
+        "faculty-coordinator": [{ value: "professor", label: "Professor" }],
+        hod: [
+            { value: "professor", label: "Professor" },
+            { value: "faculty-coordinator", label: "Faculty Coordinator" },
+        ],
+        admin: [
+            { value: "professor", label: "Professor" },
+            { value: "faculty-coordinator", label: "Faculty Coordinator" },
+            { value: "hod", label: "HOD" },
+        ],
     };
 
     return (
@@ -108,9 +163,14 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                         type="text"
                         name="department"
                         value={formData.department}
-                        onChange={handleChange}
-                        style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-                        required
+                        disabled
+                        style={{
+                            width: "100%",
+                            padding: "8px",
+                            borderRadius: "4px",
+                            border: "1px solid #ccc",
+                            backgroundColor: "#f5f5f5",
+                        }}
                     />
                 </MDBox>
                 <MDBox mb={2}>
@@ -120,10 +180,13 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                         value={formData.role}
                         onChange={handleChange}
                         style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+                        disabled={editFaculty && userRole !== "admin" && editFaculty.role !== "professor"}
                     >
-                        <option value="faculty">Faculty</option>
-                        <option value="faculty-coordinator">Faculty Coordinator</option>
-                        <option value="admin">Admin</option>
+                        {availableRoles[userRole]?.map((role) => (
+                            <option key={role.value} value={role.value}>
+                                {role.label}
+                            </option>
+                        ))}
                     </select>
                 </MDBox>
                 <MDBox display="flex" justifyContent="flex-end" mt={3}>
@@ -139,7 +202,7 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
     );
 }
 
-// FacultyTable component (similar to Publications, using Material-UI Table)
+// FacultyTable component (unchanged, matches Publications table)
 function FacultyTable({ faculties, onEditFaculty }) {
     return (
         <MDBox mb={3}>
@@ -163,7 +226,7 @@ function FacultyTable({ faculties, onEditFaculty }) {
                                 <TableRow key={faculty.id}>
                                     <TableCell>{faculty.full_name}</TableCell>
                                     <TableCell>{faculty.email}</TableCell>
-                                    <TableCell>{faculty.department}</TableCell>
+                                    <TableCell>{faculty.departments?.dname}</TableCell>
                                     <TableCell>{faculty.role}</TableCell>
                                     <TableCell align="right">
                                         <MDButton
@@ -207,9 +270,23 @@ function ManageFaculty() {
     // Fetch faculties
     const fetchFaculties = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User not authenticated");
+
             const { data, error } = await supabase
                 .from("profiles")
-                .select("*")
+                .select(`
+                    *,
+                    departments (
+                        dname
+                    )
+                `)
+                .eq("department_id", (await supabase
+                    .from("profiles")
+                    .select("department_id ")
+                    .eq("id", user.id)
+                    .single()
+                ).data.department_id)
                 .in("role", ["professor", "faculty-coordinator", "hod"]);
             if (error) {
                 throw new Error(`Error fetching faculties: ${error.message}`);
@@ -222,7 +299,7 @@ function ManageFaculty() {
             const faculty = data.filter((f) => f.role === "professor").length;
             const coordinators = data.filter((f) => f.role === "faculty-coordinator").length;
             const admins = data.filter((f) => f.role === "hod").length;
-            const departments = new Set(data.map((f) => f.department)).size;
+            const departments = new Set(data.map((f) => f.departments?.dname)).size;
             setStats({ total, faculty, coordinators, admins, departments });
         } catch (err) {
             console.error("Error fetching faculties:", err.message);
