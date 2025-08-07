@@ -44,12 +44,12 @@ function Publications({ refreshPublications, onEditPublication }) {
   }, []);
 
   // Handle external refresh from Dashboard
-  useEffect(() => {
-    if (typeof refreshPublications === "function") {
-      console.log("Received refreshPublications from Dashboard, refreshing");
-      fetchPublications();
-    }
-  }, [refreshPublications]);
+  // useEffect(() => {
+  //   if (typeof refreshPublications === "function") {
+  //     console.log("Received refreshPublications from Dashboard, refreshing");
+  //     fetchPublications();
+  //   }
+  // }, [refreshPublications]);
 
   const openMenu = ({ currentTarget }, publication) => {
     console.log("Opening menu for publication:", publication);

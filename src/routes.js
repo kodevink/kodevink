@@ -3,6 +3,7 @@ import SignIn from "layouts/authentication/sign-in";
 import ResetPassword from "layouts/authentication/reset-password/cover";
 import Dashboard from "layouts/dashboard";
 import FacultyCoordinatorDashboard from "layouts/faculty-coordinator-dashboard";
+import FacultyCoordinatorManageFaculty from "layouts/faculty-coordinator-dashboard/manage-faculty";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 
