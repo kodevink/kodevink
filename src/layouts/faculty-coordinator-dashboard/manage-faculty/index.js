@@ -22,9 +22,11 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
         name: editFaculty?.full_name || "",
         email: editFaculty?.email || "",
         department: editFaculty?.departments?.dname || "",
+        department_id: editFaculty?.department_id || "",
         role: editFaculty?.role || "professor",
     });
     const [userDepartment, setUserDepartment] = useState("");
+    const [userDepartmentId, setUserDepartmentId] = useState("");
     const [userRole, setUserRole] = useState(null);
 
     // Fetch current user's department and role
@@ -38,6 +40,7 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                     .from("profiles")
                     .select(`
                         role,
+                        department_id,
                         departments (
                         dname
                         )
@@ -47,8 +50,9 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                 if (error) throw error;
 
                 setUserDepartment(data.departments?.dname || "");
+                setUserDepartmentId(data.department_id || "");
                 setUserRole(data.role);
-                setFormData((prev) => ({ ...prev, department: data.departments?.dname || "" }));
+                setFormData((prev) => ({ ...prev, department: data.departments?.dname || "", department_id: data.department_id || "" }));
             } catch (error) {
                 console.error("Error fetching user data:", error.message);
             }
@@ -84,7 +88,7 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                     .update({
                         full_name: formData.name,
                         email: formData.email,
-                        department: formData.department,
+                        department_id: formData.department_id,
                         role: formData.role,
                     })
                     .eq("id", editFaculty.id);
@@ -96,7 +100,7 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
                     .insert({
                         full_name: formData.name,
                         email: formData.email,
-                        department: formData.department,
+                        department_id: formData.department_id,
                         role: formData.role,
                     });
                 if (error) throw error;

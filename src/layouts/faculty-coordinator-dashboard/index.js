@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import Modal from "@mui/material/Modal";
 import MDBox from "components/MDBox";
@@ -11,10 +11,162 @@ import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatist
 import PieChart from "examples/Charts/PieChart";
 import ManageFaculty from "./manage-faculty";
 import { supabase } from "utils/supabase";
+import Card from "@mui/material/Card";
+import Icon from "@mui/material/Icon";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import DataTable from "examples/Tables/DataTable";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+function PublicationTable({ publications, onVerify, selectedTab }) {
+    const [menu, setMenu] = useState(null);
+    const [selectedPublication, setSelectedPublication] = useState(null);
+    const [categoryFilter, setCategoryFilter] = useState("All");
+
+    const openMenu = ({ currentTarget }, publication) => {
+        setSelectedPublication(publication);
+        setMenu(currentTarget);
+    };
+
+    const closeMenu = () => {
+        setMenu(null);
+    };
+
+    const handleVerify = (publicationId) => {
+        onVerify(publicationId);
+        closeMenu();
+    };
+
+    const handleCategoryChange = (event) => {
+        setCategoryFilter(event.target.value);
+    };
+
+    const columns = [
+        { Header: "Title", accessor: "title", width: "20%" },
+        { Header: "Author", accessor: "author", width: "15%" },
+        { Header: "Publication Type", accessor: "publication_type", width: "15%" },
+        { Header: "Publication Name", accessor: "publication_name", width: "20%" },
+        { Header: "Year", accessor: "publication_year", width: "10%" },
+        { Header: "Scopus Indexed", accessor: "is_scopus_indexed", width: "10%" },
+        { Header: "Document", accessor: "document", width: "10%" },
+        { Header: "Actions", accessor: "actions", width: "5%" },
+    ];
+
+    const filteredPublications = categoryFilter === "All"
+        ? publications
+        : publications.filter((pub) => pub.publication_type === categoryFilter);
+
+    const rows = filteredPublications.map((pub) => ({
+        title: pub.title,
+        author: pub.profiles?.full_name || "Unknown",
+        publication_type: pub.publication_type,
+        publication_name: pub.publication_name,
+        publication_year: pub.publication_year || "N/A",
+        is_scopus_indexed: pub.is_scopus_indexed ? "Yes" : "No",
+        document: pub.document_url ? (
+            <MDButton
+                variant="text"
+                color="info"
+                size="small"
+                href={pub.document_url}
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                View PDF
+            </MDButton>
+        ) : (
+            <Icon sx={{ color: ({ palette: { error } }) => error.main }}>close</Icon>
+        ),
+        actions: selectedTab === "pending" && pub.document_url ? (
+            <MDBox>
+                <Icon
+                    sx={{ cursor: "pointer", fontWeight: "bold" }}
+                    fontSize="small"
+                    onClick={(e) => openMenu(e, pub)}
+                >
+                    more_vert
+                </Icon>
+            </MDBox>
+        ) : null,
+    }));
+
+    const renderMenu = (
+        <Menu
+            id="simple-menu"
+            anchorEl={menu}
+            anchorOrigin={{ vertical: "top", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            open={Boolean(menu)}
+            onClose={closeMenu}
+        >
+            <MenuItem onClick={() => handleVerify(selectedPublication.id)}>Verify</MenuItem>
+        </Menu>
+    );
+
+    return (
+        <MDBox width="100%" mx="auto" my={3}>
+            <Card sx={{ width: "100%", maxWidth: "100%" }}>
+                <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+                    <MDBox>
+                        <MDTypography variant="h6" gutterBottom>
+                            {selectedTab === "pending" ? "Pending Publications" : "Verified Publications"}
+                        </MDTypography>
+                        <MDBox display="flex" alignItems="center" lineHeight={0}>
+                            <Icon
+                                sx={{
+                                    fontWeight: "bold",
+                                    color: ({ palette: { info } }) => info.main,
+                                    mt: -0.5,
+                                }}
+                            >
+                                done
+                            </Icon>
+                            <MDTypography variant="button" fontWeight="regular" color="text">
+                                <strong>{filteredPublications.length} total</strong> publications
+                            </MDTypography>
+                        </MDBox>
+                    </MDBox>
+                    <MDBox>
+                        <FormControl sx={{ minWidth: 150 }}>
+                            <Select
+                                value={categoryFilter}
+                                onChange={handleCategoryChange}
+                                displayEmpty
+                                sx={{ height: "36px", fontSize: "0.875rem" }}
+                            >
+                                <MenuItem value="All">All</MenuItem>
+                                <MenuItem value="Journal Paper">Journal Paper</MenuItem>
+                                <MenuItem value="Conference Paper">Conference Paper</MenuItem>
+                                <MenuItem value="Patent">Patent</MenuItem>
+                                <MenuItem value="Book Chapter">Book Chapter</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </MDBox>
+                </MDBox>
+                <MDBox>
+                    <DataTable
+                        table={{ columns, rows }}
+                        showTotalEntries={false}
+                        isSorted={false}
+                        noEndBorder
+                        entriesPerPage={false}
+                    />
+                </MDBox>
+            </Card>
+            {renderMenu}
+        </MDBox>
+    );
+}
 
 function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
     const [activeSection, setActiveSection] = useState("dashboard");
     const [facultyData, setFacultyData] = useState([]);
+    const [pendingPublications, setPendingPublications] = useState([]);
+    const [verifiedPublications, setVerifiedPublications] = useState([]);
+    const [selectedTab, setSelectedTab] = useState("pending");
     const [stats, setStats] = useState({
         totalFaculty: 0,
         activeFaculty: 0,
@@ -22,12 +174,10 @@ function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
         newFacultyThisYear: 0,
         deptDistribution: {},
     });
-    const [message, setMessage] = useState("");
     const [userDepartment, setUserDepartment] = useState("");
 
-
     useEffect(() => {
-        const fetchFaculty = async () => {
+        const fetchData = async () => {
             try {
                 // Get authenticated user
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -36,62 +186,96 @@ function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
                 // Fetch user's profile to get their department
                 const { data: userProfile, error: profileError } = await supabase
                     .from("profiles")
-                    .select("department_id")
+                    .select("department_id, departments (dname)")
                     .eq("id", user.id)
                     .single();
-                if (profileError) throw new Error(`Error fetching user profile: ${profileError.message}`);
-                const department = userProfile.department;
-                setUserDepartment(department);
+                if (profileError) throw new Error(`Error fetching user profile: ${profileError.message} `);
+                const departmentId = userProfile.department_id;
+                const departmentName = userProfile.departments.dname;
+                setUserDepartment(departmentName);
 
                 // Fetch all faculty in the same department
                 const { data: faculty, error: facultyError } = await supabase
                     .from("profiles")
-                    .select("*")
-                    .eq("department_id", department);
-                // .eq("role", "professor"); // Assuming 'role' column exists to identify faculty
-                if (facultyError) throw new Error(`Error fetching faculty: ${facultyError.message}`);
+                    .select("*, departments (dname)")
+                    .eq("department_id", departmentId);
+                if (facultyError) throw new Error(`Error fetching faculty: ${facultyError.message} `);
                 setFacultyData(faculty || []);
 
-                // Calculate stats
+                // Calculate faculty stats
                 const currentYear = new Date().getFullYear();
                 const totalFaculty = faculty.length;
-                const activeFaculty = faculty.filter(f => f.status === "active").length; // Assuming 'status' column
+                const activeFaculty = totalFaculty; // Assuming all are active if no status column
                 const newFacultyThisYear = faculty.filter(f => new Date(f.created_at).getFullYear() === currentYear).length;
                 const deptDistribution = faculty.reduce((acc, f) => {
-                    acc[f.department] = (acc[f.department] || 0) + 1;
+                    const dname = f.departments.dname;
+                    acc[dname] = (acc[dname] || 0) + 1;
                     return acc;
                 }, {});
 
-                // Fetch pending verifications for publications in the same department
+                // Fetch publications for the department's faculty
+                const facultyIds = faculty.map(f => f.id);
                 const { data: publications, error: pubError } = await supabase
                     .from("publications")
                     .select(`
                         *,
-                        profiles (
-                        id,
-                        department_id
+                        profiles(
+                            full_name
                         )
-                    `)
-                    .eq("verification_status", "pending")
-                    .eq("profiles.department_id", department);
-                if (pubError) throw new Error(`Error fetching publications: ${pubError.message}`);
-                const pendingVerifications = publications.length;
+                            `)
+                    .in("profile_id", facultyIds);
+                if (pubError) throw new Error(`Error fetching publications: ${pubError.message} `);
+
+                const pending = publications.filter(p => p.verification_status === "pending");
+                const verified = publications.filter(p => p.verification_status === "verified");
+                setPendingPublications(pending);
+                setVerifiedPublications(verified);
 
                 setStats({
                     totalFaculty,
                     activeFaculty,
-                    pendingVerifications,
+                    pendingVerifications: pending.length,
                     newFacultyThisYear,
                     deptDistribution,
                 });
             } catch (err) {
                 console.error("Error fetching data:", err.message);
-                setMessage(`Error: ${err.message}`);
-                setTimeout(() => setMessage(""), 3000);
+                toast.error(`Error: ${err.message} `, { autoClose: 2000 });
             }
         };
-        fetchFaculty();
+        fetchData();
     }, [role]);
+
+    const handleVerify = async (publicationId) => {
+        try {
+            const { error } = await supabase
+                .from("publications")
+                .update({ verification_status: "verified" })
+                .eq("id", publicationId);
+            console.log("Verification status updated:", publicationId);
+            if (error) throw error;
+            toast.success("Publication verified successfully!", { autoClose: 2000 });
+            // Refetch data
+            const facultyIds = facultyData.map(f => f.id);
+            const { data: publications, error: pubError } = await supabase
+                .from("publications")
+                .select(`
+                    *,
+                    profiles(
+                        full_name
+                    )
+                        `)
+                .in("profile_id", facultyIds);
+            if (pubError) throw new Error(`Error fetching publications: ${pubError.message} `);
+            const pending = publications.filter(p => p.verification_status === "pending");
+            const verified = publications.filter(p => p.verification_status === "verified");
+            setPendingPublications(pending);
+            setVerifiedPublications(verified);
+            setStats((prev) => ({ ...prev, pendingVerifications: pending.length }));
+        } catch (err) {
+            toast.error(`Error verifying publication: ${err.message} `, { autoClose: 2000 });
+        }
+    };
 
     const lineChartData = {
         labels: ["2020", "2021", "2022", "2023", "2024", "2025"],
@@ -187,6 +371,34 @@ function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
                     </Grid>
                 </Grid>
             </MDBox>
+            <MDBox mt={4.5}>
+                <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                        <MDBox display="flex" mb={2}>
+                            <MDButton
+                                variant={selectedTab === "pending" ? "gradient" : "outlined"}
+                                color="info"
+                                onClick={() => setSelectedTab("pending")}
+                                sx={{ mr: 1 }}
+                            >
+                                Pending Publications
+                            </MDButton>
+                            <MDButton
+                                variant={selectedTab === "verified" ? "gradient" : "outlined"}
+                                color="info"
+                                onClick={() => setSelectedTab("verified")}
+                            >
+                                Verified Publications
+                            </MDButton>
+                        </MDBox>
+                        <PublicationTable
+                            publications={selectedTab === "pending" ? pendingPublications : verifiedPublications}
+                            onVerify={handleVerify}
+                            selectedTab={selectedTab}
+                        />
+                    </Grid>
+                </Grid>
+            </MDBox>
         </MDBox>
     );
 
@@ -197,7 +409,7 @@ function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
                 setFacultyData={setFacultyData}
                 userDepartment={userDepartment}
                 role={role}
-                setMessage={setMessage}
+                setMessage={(msg, isError) => isError ? toast.error(msg, { autoClose: 2000 }) : toast.success(msg, { autoClose: 2000 })}
             />
         </MDBox>
     );
@@ -233,11 +445,7 @@ function FacultyCoordinatorDashboard({ role = "faculty-coordinator" }) {
         <DashboardLayout>
             <DashboardNavbar />
             <MDBox py={3}>
-                {message && (
-                    <MDTypography variant="body2" color={message.includes("Error") ? "error" : "success"} mb={2}>
-                        {message}
-                    </MDTypography>
-                )}
+                <ToastContainer />
                 {activeSection === "dashboard" && renderDashboard()}
                 {activeSection === "faculty" && renderFacultyManagement()}
                 {activeSection === "students" && renderStudentReports()}

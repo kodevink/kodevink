@@ -172,48 +172,72 @@ export default function PublicationForm({ onClose, onSubmitSuccess, editPublicat
 
     setUploading(true);
 
-    let documentUrl = formData.document_url;
+    try {
+      // Verify authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error("User not authenticated. Please sign in again.");
+      }
+      console.log("Authenticated user ID:", user.id);
 
-    if (file) {
-      const fileName = `${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("research-papers")
-        .upload(fileName, file, { upsert: true });
-      if (uploadError) {
-        setErrors({ submit: "Error uploading PDF: " + uploadError.message });
-        setUploading(false);
-        return;
+      let documentUrl = formData.document_url;
+
+      // Upload PDF to Supabase Storage if a file is selected
+      if (file) {
+        // Use user ID as folder, append timestamp and sanitized filename
+        const fileName = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        console.log("Uploading file:", fileName, "Size:", file.size, "Type:", file.type);
+
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from("publication-documents")
+          .upload(fileName, file, {
+            upsert: false,
+            metadata: { owner: user.id },
+          });
+
+        if (uploadError) {
+          console.error("Upload error details:", uploadError);
+          throw new Error(`Error uploading PDF: ${uploadError.message}`);
+        }
+        console.log("Upload successful:", uploadData);
+
+        // Get the public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from("publication-documents")
+          .getPublicUrl(fileName);
+        if (!urlData?.publicUrl) {
+          throw new Error("Failed to retrieve public URL for uploaded file");
+        }
+        documentUrl = urlData.publicUrl;
+        console.log("Public file URL:", documentUrl);
       }
 
-      const { data: urlData } = supabase.storage
-        .from("research-papers")
-        .getPublicUrl(fileName);
-      documentUrl = urlData.publicUrl;
-    }
+      // Prepare publication data
+      const publicationData = {
+        ...formData,
+        profile_id: user.id,
+        publication_year: formData.publication_year ? parseInt(formData.publication_year) : null,
+        document_url: documentUrl,
+      };
+      console.log("Submitting publication data:", publicationData);
 
-    const publicationData = {
-      ...formData,
-      profile_id: (await supabase.auth.getUser()).data.user?.id,
-      publication_year: formData.publication_year ? parseInt(formData.publication_year) : null,
-      document_url: documentUrl,
-    };
+      let error;
+      if (editPublication && typeof editPublication === "object" && editPublication.id) {
+        console.log("Updating publication with data:", publicationData);
+        ({ error } = await supabase
+          .from("publications")
+          .update(publicationData)
+          .eq("id", editPublication.id));
+      } else {
+        console.log("Inserting publication with data:", publicationData);
+        ({ error } = await supabase.from("publications").insert(publicationData));
+      }
 
-    let error;
-    if (editPublication && typeof editPublication === "object" && editPublication.id) {
-      console.log("Updating publication with data:", publicationData);
-      ({ error } = await supabase
-        .from("publications")
-        .update(publicationData)
-        .eq("id", editPublication.id));
-    } else {
-      console.log("Inserting publication with data:", publicationData);
-      ({ error } = await supabase.from("publications").insert(publicationData));
-    }
+      if (error) {
+        throw new Error(`Error ${editPublication ? "updating" : "adding"} publication: ${error.message}`);
+      }
 
-    if (error) {
-      setErrors({ submit: `Error ${editPublication ? "updating" : "pub"} publication: ${error.message}` });
-      setUploading(false);
-    } else {
+      console.log("Publication added/updated successfully");
       alert(`Publication ${editPublication ? "updated" : "added"} successfully`);
       setFormData({
         title: "",
@@ -232,8 +256,12 @@ export default function PublicationForm({ onClose, onSubmitSuccess, editPublicat
       setErrors({});
       onClose();
       if (onSubmitSuccess) onSubmitSuccess();
+    } catch (error) {
+      console.error("Submission error:", error.message);
+      setErrors({ submit: error.message });
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   console.log("Rendering form elements with formData:", formData, "errors:", errors);
