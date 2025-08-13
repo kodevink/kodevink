@@ -206,7 +206,6 @@ function FacultyForm({ onClose, onSubmitSuccess, editFaculty }) {
     );
 }
 
-// FacultyTable component (unchanged, matches Publications table)
 function FacultyTable({ faculties, onEditFaculty }) {
     return (
         <MDBox mb={3}>
