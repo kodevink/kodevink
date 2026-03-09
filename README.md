@@ -102,13 +102,13 @@ Automated attendance tracking system using WiFi technology, replacing manual met
 
 ## 📊 GitHub Stats
 
-&lt;div align="center"&gt;
+<div align="center">
   
   ![Vishal's GitHub Stats](https://github-readme-stats.vercel.app/api?username=vishal4720&show_icons=true&theme=github_dark&hide_border=true)
   
   ![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=vishal4720&layout=compact&theme=github_dark&hide_border=true)
   
-&lt;/div&gt;
+</div>
 
 ---
 
@@ -125,21 +125,21 @@ Automated attendance tracking system using WiFi technology, replacing manual met
 
 I'm always open to discussing new projects, creative ideas, or opportunities to be part of your vision.
 
-&lt;div align="center"&gt;
+<div align="center">
 
   [![Portfolio](https://img.shields.io/badge/🌐_Portfolio-kodevink.com-blue?style=for-the-badge)](https://kodevink.com)
   [![LinkedIn](https://img.shields.io/badge/🔗_LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/your-profile)
   [![Twitter](https://img.shields.io/badge/🐦_Twitter-Follow-blue?style=for-the-badge&logo=twitter)](https://twitter.com/your-handle)
   [![Email](https://img.shields.io/badge/📧_Email-hello@kodevink.com-blue?style=for-the-badge)](mailto:hello@kodevink.com)
 
-&lt;/div&gt;
+</div>
 
 ---
 
-&lt;div align="center"&gt;
+<div align="center">
   
   ### 💻 Building [KodeVink](https://kodevink.com) — One Commit at a Time
   
   ![Visitor Count](https://visitor-badge.laobi.icu/badge?page_id=vishal-patole.vishal-patole)
   
-&lt;/div&gt;
+</div>
