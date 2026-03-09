@@ -1,16 +1,28 @@
-## Hi there 👋
+# Hi, I'm Vishal 👋
 
-<!--
-**kodevink/kodevink** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+Full-stack developer building web apps, mobile solutions, and cloud architecture.
 
-Here are some ideas to get you started:
+## 🔭 Currently
+- Running **KodeVink** — freelance development & consulting
+- Building with React, Next.js, Flutter, AWS
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## 🚀 Featured Projects
+
+| Project | Stack | Link |
+|---------|-------|------|
+| **ShodhKosh** | React, Supabase, Chart.js | [Live](#) |
+| **RentEase** | Flutter, Firebase, Razorpay | [App](#) |
+| **Shared Parking** | React, Django, PostgreSQL | [Live](#) |
+
+## 🛠️ Tech Stack
+![React](https://img.shields.io/badge/-React-61DAFB?logo=react&logoColor=black)
+![Next.js](https://img.shields.io/badge/-Next.js-000000?logo=next.js)
+![Flutter](https://img.shields.io/badge/-Flutter-02569B?logo=flutter)
+![AWS](https://img.shields.io/badge/-AWS-232F3E?logo=amazon-aws)
+
+## 📫 Connect
+- Portfolio: [kodevink.com](https://kodevink.com)
+- LinkedIn: [your-linkedin](#)
+
+---
+*Building [KodeVink](https://kodevink.com) — one commit at a time.*
