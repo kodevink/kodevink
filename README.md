@@ -1,4 +1,4 @@
-&lt;div align="center"&gt;
+<div align="center">
   
   ![KodeVink](https://img.shields.io/badge/KodeVink-Building%20Digital%20Products-blue?style=for-the-badge&logo=codepen&logoColor=white)
   
@@ -10,7 +10,7 @@
   [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-profile)
   [![Email](https://img.shields.io/badge/Email-hello%40kodevink.com-blue?style=flat-square&logo=gmail)](mailto:hello@kodevink.com)
 
-&lt;/div&gt;
+</div>
 
 ---
 
