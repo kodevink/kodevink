@@ -104,9 +104,9 @@ Automated attendance tracking system using WiFi technology, replacing manual met
 
 &lt;div align="center"&gt;
   
-  ![Vishal's GitHub Stats](https://github-readme-stats.vercel.app/api?username=vishal-patole&show_icons=true&theme=github_dark&hide_border=true)
+  ![Vishal's GitHub Stats](https://github-readme-stats.vercel.app/api?username=vishal4720&show_icons=true&theme=github_dark&hide_border=true)
   
-  ![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=vishal-patole&layout=compact&theme=github_dark&hide_border=true)
+  ![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=vishal4720&layout=compact&theme=github_dark&hide_border=true)
   
 &lt;/div&gt;
 
